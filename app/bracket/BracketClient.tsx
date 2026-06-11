@@ -7,6 +7,7 @@ import { Team, AIPrediction } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { FireworksBackground } from "@/components/FireworksBackground";
+import { FlagImage } from "@/components/ui/FlagImage";
 import { Bot, Trophy, Search, Plus, X, Share2, Copy, HelpCircle, Users, Edit3, ChevronRight, Zap, Save } from "lucide-react";
 
 const LS_KEY = "wc2026-bracket-slots";
@@ -515,7 +516,7 @@ export default function BracketClient({ userId: _userId }: { userId: string }) {
               <p className="text-[10px] text-[#f5c518] font-bold uppercase tracking-widest">WC 2026</p>
               {champion && (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f5c51815] border border-[#f5c51830]">
-                  <img src={getFlagUrl(champion.flagCode, 20)} alt={champion.name} className="w-5 h-3.5 object-cover rounded-sm shrink-0" />
+                  <FlagImage src={getFlagUrl(champion.flagCode, 20)} alt={champion.name} cdnSize={20} className="w-5 h-3.5 object-cover rounded-sm shrink-0" />
                   <span className="text-xs font-black text-[#f5c518]">{champion.name}</span>
                 </div>
               )}
@@ -577,7 +578,7 @@ export default function BracketClient({ userId: _userId }: { userId: string }) {
             <div>
               <p className="text-[#f5c518] text-xs font-bold uppercase tracking-[0.2em] mb-2">World Champion 2026</p>
               <div className="flex items-center gap-3 justify-center">
-                <img src={getFlagUrl(champion.flagCode, 40)} alt={champion.name} className="w-12 h-8 object-cover rounded-md shrink-0" />
+                <FlagImage src={getFlagUrl(champion.flagCode, 40)} alt={champion.name} cdnSize={40} className="w-12 h-8 object-cover rounded-md shrink-0" />
                 <p className="text-3xl font-black text-[#e8eaf0]">{champion.name}</p>
               </div>
             </div>
@@ -613,7 +614,7 @@ export default function BracketClient({ userId: _userId }: { userId: string }) {
               <button key={team.id} onClick={() => setTeamInSlot(team)}
                 className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[#141928] border border-[#1e2640] hover:border-[#f5c51840] hover:bg-[#1a2035] transition-all cursor-pointer text-left"
               >
-                <img src={getFlagUrl(team.flagCode, 20)} alt={team.name} className="w-6 h-4 object-cover rounded-sm shrink-0" />
+                <FlagImage src={getFlagUrl(team.flagCode, 20)} alt={team.name} cdnSize={20} className="w-6 h-4 object-cover rounded-sm shrink-0" />
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-[#e8eaf0] truncate">{team.name}</p>
                   <p className="text-[10px] text-[#4a5570]">{team.code}</p>
@@ -726,7 +727,7 @@ function BracketCard({
               onClick={() => onPenaltyWinner(slot.homeTeam!)}
               className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded bg-[#141928] border border-[#1e2640] hover:border-[#f5c51840] hover:bg-[#1a2035] transition-all cursor-pointer min-w-0"
             >
-              <img src={getFlagUrl(slot.homeTeam!.flagCode, 20)} className="w-4 h-2.5 object-cover rounded-sm shrink-0" />
+              <FlagImage src={getFlagUrl(slot.homeTeam!.flagCode, 20)} cdnSize={20} className="w-4 h-2.5 object-cover rounded-sm shrink-0" />
               <span className="text-[10px] text-[#c8cfe0] truncate">{slot.homeTeam!.name.split(" ")[0]}</span>
             </button>
             <button
@@ -743,7 +744,7 @@ function BracketCard({
               onClick={() => onPenaltyWinner(slot.awayTeam!)}
               className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded bg-[#141928] border border-[#1e2640] hover:border-[#f5c51840] hover:bg-[#1a2035] transition-all cursor-pointer min-w-0"
             >
-              <img src={getFlagUrl(slot.awayTeam!.flagCode, 20)} className="w-4 h-2.5 object-cover rounded-sm shrink-0" />
+              <FlagImage src={getFlagUrl(slot.awayTeam!.flagCode, 20)} cdnSize={20} className="w-4 h-2.5 object-cover rounded-sm shrink-0" />
               <span className="text-[10px] text-[#c8cfe0] truncate">{slot.awayTeam!.name.split(" ")[0]}</span>
             </button>
           </div>
@@ -753,7 +754,7 @@ function BracketCard({
       {/* Penalties result badge */}
       {penaltiesDecided && (
         <div className="px-2.5 py-1.5 border-t border-[#f5c51815] flex items-center gap-1.5">
-          <img src={getFlagUrl(slot.winner!.flagCode, 20)} className="w-3.5 h-2.5 object-cover rounded-sm" />
+          <FlagImage src={getFlagUrl(slot.winner!.flagCode, 20)} cdnSize={20} className="w-3.5 h-2.5 object-cover rounded-sm" />
           <span className="text-[9px] text-[#f5c518] font-bold">Pen. {slot.winner!.name.split(" ")[0]}</span>
         </div>
       )}
@@ -772,7 +773,7 @@ function TeamInputRow({
 }) {
   const teamContent = team ? (
     <>
-      <img src={getFlagUrl(team.flagCode, 20)} alt={team.name} className="w-5 h-3.5 object-cover rounded-sm shrink-0" />
+      <FlagImage src={getFlagUrl(team.flagCode, 20)} alt={team.name} cdnSize={20} className="w-5 h-3.5 object-cover rounded-sm shrink-0" />
       <span className={`text-[11px] font-medium truncate ${isWinner ? "text-[#f5c518]" : "text-[#e8eaf0]"}`}>
         {team.name}
       </span>

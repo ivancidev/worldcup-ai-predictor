@@ -5,6 +5,7 @@ import { WC2026_GROUPS, getFlagUrl } from "@/lib/world-cup-data";
 import { usePredictionStore } from "@/lib/store";
 import { AIPrediction, Prediction, Team } from "@/lib/types";
 import { Dialog } from "@/components/ui/Dialog";
+import { FlagImage } from "@/components/ui/FlagImage";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { createClient } from "@/lib/supabase/client";
@@ -240,9 +241,10 @@ export default function GroupsClient({ userId, savedPredictions }: GroupsClientP
           <div className="space-y-5">
             <div className="flex items-end justify-between gap-3 py-2">
               <div className="flex flex-col items-center gap-2 flex-1">
-                <img
+                <FlagImage
                   src={getFlagUrl(editModal.home.flagCode, 40)}
                   alt={editModal.home.name}
+                  cdnSize={40}
                   className="w-12 h-8 object-cover rounded-md"
                 />
                 <p className="text-xs font-bold text-[#e8eaf0] text-center leading-tight max-w-[80px] truncate">
@@ -268,9 +270,10 @@ export default function GroupsClient({ userId, savedPredictions }: GroupsClientP
               <span className="text-2xl font-black text-[#2d3a5a] pb-3 shrink-0">—</span>
 
               <div className="flex flex-col items-center gap-2 flex-1">
-                <img
+                <FlagImage
                   src={getFlagUrl(editModal.away.flagCode, 40)}
                   alt={editModal.away.name}
+                  cdnSize={40}
                   className="w-12 h-8 object-cover rounded-md"
                 />
                 <p className="text-xs font-bold text-[#e8eaf0] text-center leading-tight max-w-[80px] truncate">
@@ -439,7 +442,7 @@ function GroupCard({
         </div>
         <div className="flex gap-2">
           {teams.map(t => (
-            <img key={t.id} src={getFlagUrl(t.flagCode, 20)} alt={t.name} className="w-6 h-4 object-cover rounded-sm" title={t.name} />
+            <FlagImage key={t.id} src={getFlagUrl(t.flagCode, 20)} alt={t.name} cdnSize={20} className="w-6 h-4 object-cover rounded-sm" title={t.name} />
           ))}
         </div>
       </div>
@@ -460,7 +463,7 @@ function GroupCard({
           >
             <div className="flex items-center gap-2 min-w-0">
               <span className={`w-3 text-xs shrink-0 font-bold ${idx < 2 ? "text-[#f5c518]" : "text-[#4a5570]"}`}>{idx + 1}</span>
-              <img src={getFlagUrl(s.team.flagCode, 20)} alt={s.team.name} className="w-6 h-4 object-cover rounded-sm shrink-0" />
+              <FlagImage src={getFlagUrl(s.team.flagCode, 20)} alt={s.team.name} cdnSize={20} className="w-6 h-4 object-cover rounded-sm shrink-0" />
               <span className="text-[#e8eaf0] truncate text-xs font-medium">{s.team.name}</span>
               {idx < 2 && <ArrowRight className="w-3 h-3 text-[#f5c51880] shrink-0" aria-label="Advances" />}
             </div>
@@ -537,7 +540,7 @@ function GroupCard({
 function TeamPill({ team, align = "left" }: { team: Team; align?: "left" | "right" }) {
   return (
     <div className={`flex items-center gap-1.5 flex-1 min-w-0 ${align === "right" ? "justify-end" : ""}`}>
-      <img src={getFlagUrl(team.flagCode, 20)} alt={team.name} className="w-5 h-3.5 object-cover rounded-sm shrink-0" />
+      <FlagImage src={getFlagUrl(team.flagCode, 20)} alt={team.name} cdnSize={20} className="w-5 h-3.5 object-cover rounded-sm shrink-0" />
       <span className="text-xs text-[#e8eaf0] truncate font-medium">{team.name}</span>
     </div>
   );

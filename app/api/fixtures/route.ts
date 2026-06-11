@@ -125,6 +125,15 @@ export async function GET(request: NextRequest) {
       updated_at: new Date().toISOString(),
     });
 
+    // If the live API returned nothing (tournament data not yet loaded),
+    // fall back to the static schedule so the widget is never empty.
+    if (fixtures.length === 0) {
+      const fallback = generateStaticFixtures()
+        .filter((f) => f.status.short === "NS")
+        .sort((a, b) => a.timestamp - b.timestamp);
+      return Response.json({ data: fallback, static: true });
+    }
+
     return Response.json({ data: fixtures, cached: false });
   } catch (error) {
     console.error("Fixtures API error:", error);

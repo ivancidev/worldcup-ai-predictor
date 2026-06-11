@@ -5,6 +5,7 @@ import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, ChevronRight } from "lucide-react";
+import { FlagImage } from "@/components/ui/FlagImage";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -146,9 +147,10 @@ export default function HeroSection() {
             key={team.name}
             className="team-pill flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0e1220] border border-[#1e2640] text-sm text-[#8899bb]"
           >
-            <img
+            <FlagImage
               src={`https://flagcdn.com/w20/${team.flag}.png`}
               alt={team.name}
+              cdnSize={20}
               className="w-5 h-3.5 object-cover rounded-sm"
             />
             {team.name}

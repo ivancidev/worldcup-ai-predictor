@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Bot, Check } from "lucide-react";
+import { FlagImage } from "@/components/ui/FlagImage";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -156,9 +157,10 @@ function TeamDisplay({
         align === "right" ? "items-end" : "items-start"
       }`}
     >
-      <img
+      <FlagImage
         src={`https://flagcdn.com/w40/${flag}.png`}
         alt={name}
+        cdnSize={40}
         className="w-10 h-7 object-cover rounded"
       />
       <span className="text-sm font-semibold text-[#e8eaf0] truncate">{name}</span>
