@@ -94,3 +94,15 @@ pnpm test:ui      # Playwright interactive UI
 - ❌ Don't add secrets to `.env.example` — only placeholder values
 - ❌ Don't modify existing migration files — always create new ones
 - ❌ Don't use `any` type in TypeScript — be explicit
+
+## Before Finishing Any Task
+
+**ALWAYS run these three commands in order before considering a task complete.** Fix every error they report before finishing.
+
+```bash
+pnpm lint              # must pass with zero errors
+pnpm exec tsc --noEmit # must pass with zero type errors
+pnpm build             # must complete without errors
+```
+
+This mirrors exactly what `.github/workflows/ci.yml` runs on every push. If any of these fail locally, the GitHub Action will also fail and Vercel will block the deployment.
