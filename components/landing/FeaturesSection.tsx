@@ -5,14 +5,14 @@ const FEATURES = [
     icon: Bot,
     title: "AI-Powered Predictions",
     description:
-      "AI analyzes real stats — form, head-to-head records, goals scored — and gives you expert-level match predictions with detailed reasoning.",
+      "AI analyzes real stats including form, head-to-head records and goals scored to give you expert-level match predictions with detailed reasoning.",
     accent: "#f5c518",
   },
   {
     icon: BarChart2,
     title: "Real Live Data",
     description:
-      "Fixtures, standings, and team statistics always up to date with live World Cup 2026 results.",
+      "Fixtures, standings and team statistics always up to date with live World Cup 2026 results.",
     accent: "#3b82f6",
   },
   {
@@ -33,7 +33,7 @@ const FEATURES = [
     icon: Zap,
     title: "Lightning Fast",
     description:
-      "Predictions load instantly thanks to smart caching. No waiting — get your analysis in seconds.",
+      "Predictions load instantly thanks to smart caching. Get your full analysis in seconds.",
     accent: "#f59e0b",
   },
   {
@@ -57,7 +57,7 @@ export default function FeaturesSection() {
             Built for football fans
           </h2>
           <p className="text-[#8899bb] text-lg max-w-2xl mx-auto">
-            From AI match analysis to shareable brackets — every feature a real fan needs for World Cup 2026.
+            From AI match analysis to shareable brackets every feature a real fan needs for World Cup 2026.
           </p>
         </div>
 

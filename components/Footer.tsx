@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Trophy, Code2 } from "lucide-react";
+import { Trophy } from "lucide-react";
 
 export default function Footer() {
   return (

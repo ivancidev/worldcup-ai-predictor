@@ -51,7 +51,7 @@ export default function CTASection() {
                 className="flex items-center gap-2 px-10 py-4 text-lg font-bold bg-gradient-to-r from-[#f5c518] to-[#c9a000] text-[#080b14] rounded-2xl hover:from-[#ffd54f] hover:to-[#f5c518] transition-all duration-300 active:scale-95 shadow-2xl shadow-[#f5c51840] cursor-pointer"
               >
                 <Trophy className="w-5 h-5" />
-                Create free account
+                Create account
               </Link>
               <Link
                 href="/groups"

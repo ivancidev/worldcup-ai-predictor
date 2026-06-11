@@ -115,6 +115,7 @@ export default function GroupsClient({ userId, savedPredictions }: GroupsClientP
       }
     });
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalPredictions(initial);
     setSavedMatches(saved);
     Object.keys(WC2026_GROUPS).forEach(g => checkGroupComplete(g, saved, initial));

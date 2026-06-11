@@ -26,11 +26,11 @@ const PREVIEW_MATCHES = [
 ];
 
 const AI_FEATURES = [
-  "Real team statistics — live World Cup 2026 data",
-  "Last 5 matches + head-to-head records",
+  "Real team statistics from live World Cup 2026 data",
+  "Last 5 matches and head-to-head records included",
   "Confidence score for every prediction",
-  "Detailed reasoning you can share",
-];
+  "Detailed reasoning you can read and share",
+] as const;
 
 export default function ShowcaseSection() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -78,8 +78,8 @@ export default function ShowcaseSection() {
               <span className="gradient-text">instantly generated</span>
             </h2>
             <p className="text-[#8899bb] text-lg leading-relaxed mb-8">
-              Pick any match, hit &quot;AI Predict&quot;, and get a detailed analysis backed by real
-              match data — goals per game, form, head-to-head history — all analyzed instantly by AI.
+              Pick any match, hit &quot;AI Predict&quot; and get a detailed analysis backed by real
+              match data. Goals per game, form and head-to-head history all analyzed in seconds.
             </p>
             <ul className="space-y-3 text-left">
               {AI_FEATURES.map((item) => (
@@ -125,7 +125,7 @@ export default function ShowcaseSection() {
                 <div className="flex items-center gap-2 pt-3 border-t border-[#1e2640]">
                   <span className="text-xs text-[#4a5570]">AI Prediction:</span>
                   <span className="text-xs font-semibold text-[#f5c518]">
-                    {match.prediction.winner} wins
+                    {match.prediction.winner === "Draw" ? "Draw" : `${match.prediction.winner} wins`}
                   </span>
                   <div className="ml-auto flex items-center gap-1.5 text-xs text-[#4a5570]">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" />

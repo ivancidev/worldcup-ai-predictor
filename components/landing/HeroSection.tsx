@@ -78,9 +78,13 @@ export default function HeroSection() {
 
       {/* Badge */}
       <div className="relative mb-8">
-        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#f5c51815] border border-[#f5c51830] text-[#f5c518] text-sm font-medium">
-          <span className="w-2 h-2 rounded-full bg-[#f5c518] animate-pulse-gold" />
-          FIFA World Cup 2026 — June 11 to July 19
+        <span className="inline-flex items-center rounded-full border border-[#f5c51828] bg-[#f5c51810] overflow-hidden text-sm font-medium">
+          <span className="px-3 py-1.5 bg-[#f5c518] text-[#080b14] font-black tracking-wide text-xs">
+            WC 2026
+          </span>
+          <span className="px-3.5 py-1.5 text-[#c8a840] tracking-wide text-xs">
+            Jun 11 – Jul 19 · USA, Canada &amp; Mexico
+          </span>
         </span>
       </div>
 
@@ -108,7 +112,7 @@ export default function HeroSection() {
           href="/auth"
           className="group flex items-center gap-2 px-8 py-4 text-base font-bold bg-gradient-to-r from-[#f5c518] to-[#c9a000] text-[#080b14] rounded-2xl hover:from-[#ffd54f] hover:to-[#f5c518] transition-all duration-300 active:scale-95 shadow-xl shadow-[#f5c51830] cursor-pointer"
         >
-          Start predicting free
+          Start predicting
           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
         </Link>
         <Link

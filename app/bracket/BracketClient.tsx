@@ -7,7 +7,7 @@ import { Team, AIPrediction } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { FireworksBackground } from "@/components/FireworksBackground";
-import { Bot, Trophy, Search, Plus, X, Share2, Copy } from "lucide-react";
+import { Bot, Trophy, Search, Plus, X, Share2, Copy, HelpCircle, Users, Edit3, ChevronRight, Zap, Save } from "lucide-react";
 
 const LS_KEY = "wc2026-bracket-slots";
 
@@ -86,10 +86,23 @@ const sortIdx = (id: string) => parseInt(id.split("-").slice(-1)[0]) || 0;
 export default function BracketClient({ userId: _userId }: { userId: string }) {
   const { champion, setChampion, completedGroups } = usePredictionStore();
 
-  // Initialize from URL param (?v=), then localStorage, then fresh
-  const [bracket, setBracket] = useState<BracketSlot[]>(() => {
-    if (typeof window === "undefined") return buildInitialBracket();
+  // Always start with a clean bracket (SSR-safe). Rehydrate from localStorage/URL in useEffect.
+  const [bracket, setBracket] = useState<BracketSlot[]>(buildInitialBracket);
 
+  const [aiAllLoading, setAiAllLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [teamPicker, setTeamPicker] = useState<{ slotId: string; position: "home" | "away" } | null>(null);
+  const [pickerSearch, setPickerSearch] = useState("");
+  const [showFireworks, setShowFireworks] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [decidingPenalties, setDecidingPenalties] = useState<string | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
+
+  // Capture champion at mount — don't trigger fireworks for already-stored champion
+  const [initialChampion] = useState(() => champion);
+
+  // Rehydrate bracket from URL param or localStorage after mount (client-only)
+  useEffect(() => {
     // 1. URL-shared bracket takes priority
     const v = new URLSearchParams(window.location.search).get("v");
     if (v) {
@@ -105,33 +118,18 @@ export default function BracketClient({ userId: _userId }: { userId: string }) {
           const slot = slots.find(s => s.id === id);
           if (slot) Object.assign(slot, { homeTeam, awayTeam, scoreA, scoreB, winner });
         });
-        return slots;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setBracket(slots);
+        return;
       } catch { /* fallthrough */ }
     }
 
     // 2. localStorage (survives refresh / navigate away)
     try {
       const stored = localStorage.getItem(LS_KEY);
-      if (stored) return JSON.parse(stored) as BracketSlot[];
+      if (stored) setBracket(JSON.parse(stored) as BracketSlot[]);
     } catch { /* ignore */ }
-
-    return buildInitialBracket();
-  });
-
-  const [aiAllLoading, setAiAllLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [teamPicker, setTeamPicker] = useState<{ slotId: string; position: "home" | "away" } | null>(null);
-  const [pickerSearch, setPickerSearch] = useState("");
-  const [showFireworks, setShowFireworks] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [decidingPenalties, setDecidingPenalties] = useState<string | null>(null);
-  const [showInfo, setShowInfo] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("bracket-info-dismissed") !== "1";
-  });
-
-  // Capture champion at mount — don't trigger fireworks for already-stored champion
-  const [initialChampion] = useState(() => champion);
+  }, []);
 
   const prevCompletedRef = useRef<Record<string, Team[]>>({});
 
@@ -149,6 +147,7 @@ export default function BracketClient({ userId: _userId }: { userId: string }) {
   // Show fireworks only when champion is set during THIS session
   useEffect(() => {
     if (champion && champion.id !== initialChampion?.id) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowFireworks(true);
       const t = setTimeout(() => setShowFireworks(false), 9000);
       return () => clearTimeout(t);
@@ -464,31 +463,20 @@ export default function BracketClient({ userId: _userId }: { userId: string }) {
           <Button variant="ghost" size="sm" onClick={resetBracket}>
             Reset
           </Button>
+          {/* Help button */}
+          <button
+            onClick={() => setShowHelp(true)}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-[#4a5570] hover:text-[#8899bb] hover:bg-[#1e2640] transition-all cursor-pointer"
+            aria-label="How the bracket works"
+            title="How the bracket works"
+          >
+            <HelpCircle className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      {/* Info banner — shown once until dismissed */}
-      {showInfo && (
-        <div className="max-w-7xl mx-auto px-4 mb-4">
-          <div className="relative p-4 rounded-xl bg-[#141928] border border-[#1e2640]">
-            <button
-              onClick={() => { localStorage.setItem("bracket-info-dismissed", "1"); setShowInfo(false); }}
-              className="absolute top-3 right-3 text-[#4a5570] hover:text-[#e8eaf0] transition-colors cursor-pointer"
-              aria-label="Dismiss"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-            <p className="text-sm font-bold text-[#e8eaf0] mb-2.5">How the Tournament Bracket works</p>
-            <ul className="space-y-1.5">
-              <li className="text-[11px] text-[#8899bb]"><span className="text-[#e8eaf0] font-semibold">Teams auto-fill from Group Stage</span> — complete all 6 group matches and the qualified teams seed into R32 automatically</li>
-              <li className="text-[11px] text-[#8899bb]"><span className="text-[#e8eaf0] font-semibold">R32 slots are editable</span> — click any team name in the outer columns to change it manually</li>
-              <li className="text-[11px] text-[#8899bb]"><span className="text-[#e8eaf0] font-semibold">Enter scores to advance</span> — the winner auto-moves to the next round; R16 onwards teams only advance via scores, no manual picks</li>
-              <li className="text-[11px] text-[#8899bb]"><span className="text-[#e8eaf0] font-semibold">Draws → Penalties</span> — equal scores show a penalty picker; choose the winner yourself or let AI decide</li>
-              <li className="text-[11px] text-[#8899bb]"><span className="text-[#e8eaf0] font-semibold">Auto-saved</span> — everything is saved in your browser automatically; use Share to copy a link</li>
-            </ul>
-          </div>
-        </div>
-      )}
+      {/* Help modal */}
+      <BracketHelpModal open={showHelp} onClose={() => setShowHelp(false)} />
 
       {/* Bracket */}
       <div className="overflow-x-auto pb-8">
@@ -639,6 +627,54 @@ export default function BracketClient({ userId: _userId }: { userId: string }) {
         </div>
       </Dialog>
     </div>
+  );
+}
+
+const HELP_TIPS = [
+  {
+    icon: Users,
+    label: "Teams auto-fill from Group Stage",
+    desc: "Complete all 6 group matches and the qualified teams seed into R32 automatically.",
+  },
+  {
+    icon: Edit3,
+    label: "R32 slots are editable",
+    desc: "Click any team name in the outer columns to change it manually.",
+  },
+  {
+    icon: ChevronRight,
+    label: "Enter scores to advance",
+    desc: "The winner auto-moves to the next round. R16 onwards only advances via scores — no manual picks.",
+  },
+  {
+    icon: Zap,
+    label: "Draws → Penalties",
+    desc: "Equal scores show a penalty picker. Choose the winner yourself or let AI decide.",
+  },
+  {
+    icon: Save,
+    label: "Auto-saved",
+    desc: "Everything is saved in your browser automatically. Use Share to copy a link.",
+  },
+] as const;
+
+function BracketHelpModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return (
+    <Dialog open={open} onClose={onClose} title="How the Bracket works">
+      <ul className="space-y-3">
+        {HELP_TIPS.map(({ icon: Icon, label, desc }) => (
+          <li key={label} className="flex gap-3 items-start">
+            <span className="mt-0.5 w-7 h-7 shrink-0 flex items-center justify-center rounded-lg bg-[#f5c51815] border border-[#f5c51825]">
+              <Icon className="w-3.5 h-3.5 text-[#f5c518]" />
+            </span>
+            <div>
+              <p className="text-xs font-semibold text-[#e8eaf0] leading-snug">{label}</p>
+              <p className="text-[11px] text-[#6677aa] mt-0.5 leading-relaxed">{desc}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Dialog>
   );
 }
 
