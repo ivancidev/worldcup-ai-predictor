@@ -38,24 +38,15 @@ export default function ShowcaseSection() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.from(".showcase-card", {
-        x: 60,
-        stagger: 0.15,
-        duration: 0.7,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top 75%",
-        },
-      });
-
       gsap.from(".showcase-text", {
-        x: -50,
-        duration: 0.7,
+        y: 20,
+        opacity: 0,
+        duration: 0.6,
         ease: "power3.out",
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: "top 75%",
+          start: "top 85%",
+          once: true,
         },
       });
     }, sectionRef);
@@ -66,9 +57,9 @@ export default function ShowcaseSection() {
   return (
     <section ref={sectionRef} className="py-24 px-4 bg-[#0e1220]">
       <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col lg:flex-row items-center gap-16">
+        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
           {/* Text side */}
-          <div className="showcase-text flex-1 text-center lg:text-left">
+          <div className="showcase-text flex-1 w-full text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#f5c51815] border border-[#f5c51830] text-[#f5c518] text-sm mb-6">
               <Bot className="w-3.5 h-3.5" />
               AI Analysis
@@ -94,21 +85,22 @@ export default function ShowcaseSection() {
             </ul>
           </div>
 
-          {/* Cards side */}
-          <div className="flex-1 w-full max-w-md space-y-4">
-            {PREVIEW_MATCHES.map((match) => (
+          {/* Cards side — CSS animation (no ScrollTrigger dependency) */}
+          <div className="flex-1 w-full max-w-md mx-auto lg:mx-0 space-y-4">
+            {PREVIEW_MATCHES.map((match, idx) => (
               <div
                 key={`${match.home.name}-${match.away.name}`}
-                className="showcase-card p-5 rounded-2xl bg-[#080b14] border border-[#1e2640] hover:border-[#2d3a5a] transition-all duration-300"
+                className="animate-fade-in-up p-5 rounded-2xl bg-[#080b14] border border-[#1e2640] hover:border-[#2d3a5a] transition-colors duration-300"
+                style={{ animationDelay: `${idx * 0.15}s` }}
               >
                 <div className="flex items-center justify-between mb-3">
                   <TeamDisplay name={match.home.name} flag={match.home.flag} />
-                  <div className="text-center">
-                    <div className="text-2xl font-black text-[#e8eaf0]">
+                  <div className="text-center flex-shrink-0 px-3">
+                    <div className="text-2xl font-black text-[#e8eaf0] whitespace-nowrap">
                       {match.prediction.scoreA} — {match.prediction.scoreB}
                     </div>
                     <div
-                      className="text-xs mt-0.5 font-medium"
+                      className="text-xs mt-0.5 font-medium whitespace-nowrap"
                       style={{
                         color:
                           match.prediction.confidence >= 70
@@ -153,7 +145,7 @@ function TeamDisplay({
 }) {
   return (
     <div
-      className={`flex flex-col gap-1.5 w-24 ${
+      className={`flex flex-col gap-1.5 min-w-0 flex-1 ${
         align === "right" ? "items-end" : "items-start"
       }`}
     >
@@ -163,7 +155,7 @@ function TeamDisplay({
         cdnSize={40}
         className="w-10 h-7 object-cover rounded"
       />
-      <span className="text-sm font-semibold text-[#e8eaf0] truncate">{name}</span>
+      <span className="text-sm font-semibold text-[#e8eaf0] truncate max-w-full">{name}</span>
     </div>
   );
 }
