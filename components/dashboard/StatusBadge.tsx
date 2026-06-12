@@ -20,7 +20,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     return (
       <span className="flex items-center gap-1 text-[10px] font-bold text-[#22c55e] uppercase tracking-wider">
         <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse shrink-0" />
-        {short === "HT" ? "HT" : elapsed ? `${elapsed}'` : "Live"}
+        In play
       </span>
     );
   }
@@ -28,7 +28,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
   if (["FT", "AET", "PEN_FT"].includes(short)) {
     return (
       <span className="text-[10px] font-semibold text-[#4a5570] uppercase tracking-wider">
-        FT
+        Played
       </span>
     );
   }

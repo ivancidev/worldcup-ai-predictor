@@ -132,11 +132,15 @@ export default function BracketClient() {
     }
   }, [bracket, isHydrated]);
 
-  // Sync f-0 winner → store champion (outside render, avoids setState-in-render error)
+  // Sync f-0 winner ↔ store champion (outside render, avoids setState-in-render error).
+  // Also clears the champion when the final no longer has a winner (e.g. an earlier
+  // round was edited), so a stale champion never sticks around. Waits for hydration
+  // so the persisted champion isn't wiped by the initial empty bracket.
   const finalWinner = useMemo(() => bracket.find(s => s.id === "f-0")?.winner ?? null, [bracket]);
   useEffect(() => {
-    if (finalWinner) setChampion(finalWinner);
-  }, [finalWinner, setChampion]);
+    if (!isHydrated) return;
+    setChampion(finalWinner);
+  }, [finalWinner, setChampion, isHydrated]);
 
   // Show fireworks only when champion is set during THIS session
   useEffect(() => {
