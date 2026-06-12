@@ -7,11 +7,12 @@ Live from June 11 to July 19, 2026. Covering USA, Canada and Mexico.
 ## Features
 
 - **AI match predictions** using Groq (LLaMA) with real form, head-to-head and goals data
+- **Resilient AI engine** — automatic fallback to a secondary model when rate limits hit, with cached predictions as a last resort
 - **Full bracket builder** from Round of 32 to the Final — AI auto-fill or set every score yourself
 - **Group stage tracker** with live standings and fixtures from API-Football
 - **Shareable predictions** with rich link previews for X, WhatsApp and more
 - **Auto-saved bracket** stored in the browser — no account needed to explore
-- **Authentication** via Supabase (email/password)
+- **Authentication** via Supabase (email/password and Google OAuth)
 
 ## Tech Stack
 
@@ -48,6 +49,12 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 GROQ_API_KEY=
 API_FOOTBALL_KEY=
+```
+
+Optional:
+
+```
+NEXT_PUBLIC_SITE_URL=   # Canonical URL for metadata, sitemap and OG images
 ```
 
 ### 3. Run database migrations
@@ -124,3 +131,39 @@ These are injected into the build step so `next build` has access to them withou
 ### Vercel integration
 
 Vercel runs its own build on deploy. Make sure the same four environment variables are also set in **Vercel → Project → Settings → Environment Variables** so production builds pass.
+
+## Contributing
+
+Contributions are welcome! If you'd like to improve the predictor:
+
+1. **Fork** the repo and clone your fork:
+   ```bash
+   git clone https://github.com/<your-username>/worldcup-ai-predictor.git
+   ```
+2. **Create a branch** from `develop`:
+   ```bash
+   git checkout -b feat/my-feature develop
+   ```
+3. **Make your changes** following the project conventions (see [AGENTS.md](AGENTS.md)) and use the commit message format:
+   ```
+   feat:     new feature
+   fix:      bug fix
+   chore:    tooling, deps, config
+   test:     adding/updating tests
+   refactor: code change without behavior change
+   ```
+4. **Verify before pushing** — these must pass with zero errors (same checks CI runs):
+   ```bash
+   pnpm lint
+   pnpm exec tsc --noEmit
+   pnpm build
+   ```
+5. **Open a Pull Request** against `develop` with a clear description of what you changed and why.
+
+Found a bug or have an idea? [Open an issue](https://github.com/ivancidev/worldcup-ai-predictor/issues) — all feedback is appreciated.
+
+## Author
+
+Built by **Iván** ([@ivancidev](https://github.com/ivancidev))
+
+If you find this project useful, a ⭐ on the repo is always welcome!
