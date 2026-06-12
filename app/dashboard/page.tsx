@@ -18,6 +18,7 @@ export default async function DashboardPage() {
 
   const daysToKickoff = getDaysToKickoff();
   const daysToFinal  = getDaysToFinal();
+  const hasStarted   = daysToKickoff === 0;
 
   const stats = [
     { label: "My Predictions",  value: predictionsCount || 0, icon: Target,   accent: "#f5c518", bg: "rgba(245,197,24,0.07)"  },
@@ -62,16 +63,30 @@ export default async function DashboardPage() {
                 </span>
               </h1>
               <p className="text-[#8899bb] text-sm sm:text-base">
-                The Group Stage kicks off in{" "}
-                <span className="text-[#e8eaf0] font-semibold">{daysToKickoff} day{daysToKickoff !== 1 ? "s" : ""}</span>.
-                {" "}Make your AI-powered predictions now.
+                {hasStarted ? (
+                  <>
+                    The World Cup is{" "}
+                    <span className="text-[#e8eaf0] font-semibold">underway</span>.
+                    {" "}Make your AI-powered predictions now.
+                  </>
+                ) : (
+                  <>
+                    The Group Stage kicks off in{" "}
+                    <span className="text-[#e8eaf0] font-semibold">{daysToKickoff} day{daysToKickoff !== 1 ? "s" : ""}</span>.
+                    {" "}Make your AI-powered predictions now.
+                  </>
+                )}
               </p>
             </div>
 
             {/* Right: countdown badge */}
             <div className="flex gap-3 shrink-0">
-              <CountdownBadge label="Kickoff" value={daysToKickoff} accent="#f5c518" />
-              <CountdownBadge label="Final"   value={daysToFinal}   accent="#c084fc" />
+              {hasStarted ? (
+                <LiveBadge />
+              ) : (
+                <CountdownBadge label="Kickoff" value={daysToKickoff} accent="#f5c518" />
+              )}
+              <CountdownBadge label="Final" value={daysToFinal} accent="#c084fc" />
             </div>
           </div>
         </div>
@@ -183,6 +198,23 @@ function CountdownBadge({ label, value, accent }: { label: string; value: number
     >
       <span className="text-3xl font-black" style={{ color: accent }}>{value}</span>
       <span className="text-[10px] font-semibold text-[#8899bb] mt-0.5 uppercase tracking-wider">{label}</span>
+    </div>
+  );
+}
+
+function LiveBadge() {
+  return (
+    <div
+      className="flex flex-col items-center justify-center px-5 py-4 rounded-2xl border"
+      style={{ borderColor: "#f5c51820", background: "#f5c51808" }}
+    >
+      <span className="flex items-center gap-1.5 text-xl font-black text-[#f5c518]">
+        <span className="w-2 h-2 rounded-full bg-[#f5c518] animate-pulse" />
+        Live
+      </span>
+      <span className="text-[10px] font-semibold text-[#8899bb] mt-0.5 uppercase tracking-wider">
+        World Cup
+      </span>
     </div>
   );
 }

@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { FireworksBackground } from "@/components/FireworksBackground";
 import { FlagImage } from "@/components/ui/FlagImage";
-import { Bot, Trophy, Search, Plus, X, Share2, Copy, HelpCircle, Users, Edit3, ChevronRight, Zap, Save } from "lucide-react";
+import { Bot, Trophy, Search, Plus, X, HelpCircle, Users, Edit3, ChevronRight, Zap, Save } from "lucide-react";
+import { DownloadBracketCard } from "@/components/share/DownloadBracketCard";
 
 const LS_KEY = "wc2026-bracket-slots";
 
@@ -84,66 +85,62 @@ function getNextSlot(slotId: string): { nextId: string; position: "home" | "away
 
 const sortIdx = (id: string) => parseInt(id.split("-").slice(-1)[0]) || 0;
 
-export default function BracketClient({ userId: _userId }: { userId: string }) {
+export default function BracketClient() {
   const { champion, setChampion, completedGroups } = usePredictionStore();
 
-  // Always start with a clean bracket (SSR-safe). Rehydrate from localStorage/URL in useEffect.
+  // Always start with a clean bracket (SSR-safe). Rehydrate from localStorage in useEffect.
   const [bracket, setBracket] = useState<BracketSlot[]>(buildInitialBracket);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   const [aiAllLoading, setAiAllLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [teamPicker, setTeamPicker] = useState<{ slotId: string; position: "home" | "away" } | null>(null);
   const [pickerSearch, setPickerSearch] = useState("");
   const [showFireworks, setShowFireworks] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [decidingPenalties, setDecidingPenalties] = useState<string | null>(null);
+  const [decidingAI, setDecidingAI] = useState<string | null>(null);
+  const [aiModal, setAiModal] = useState<{
+    open: boolean;
+    teamA: Team;
+    teamB: Team;
+    scoreA: number;
+    scoreB: number;
+    reasoning: string;
+    confidence: number;
+  } | null>(null);
   const [showHelp, setShowHelp] = useState(false);
 
   // Capture champion at mount — don't trigger fireworks for already-stored champion
   const [initialChampion] = useState(() => champion);
 
-  // Rehydrate bracket from URL param or localStorage after mount (client-only)
+  // Rehydrate bracket from localStorage after mount (client-only)
   useEffect(() => {
-    // 1. URL-shared bracket takes priority
-    const v = new URLSearchParams(window.location.search).get("v");
-    if (v) {
-      try {
-        const data = JSON.parse(atob(v)) as [string, number, number, number, number][];
-        const teamById: Record<number, Team> = Object.fromEntries(ALL_TEAMS.map(t => [t.id, t]));
-        const slots = buildInitialBracket();
-        data.forEach(([id, homeId, awayId, scoreA, scoreB]) => {
-          const homeTeam = teamById[homeId];
-          const awayTeam = teamById[awayId];
-          if (!homeTeam || !awayTeam) return;
-          const winner = scoreA >= scoreB ? homeTeam : awayTeam;
-          const slot = slots.find(s => s.id === id);
-          if (slot) Object.assign(slot, { homeTeam, awayTeam, scoreA, scoreB, winner });
-        });
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setBracket(slots);
-        return;
-      } catch { /* fallthrough */ }
-    }
-
-    // 2. localStorage (survives refresh / navigate away)
     try {
       const stored = localStorage.getItem(LS_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (stored) setBracket(JSON.parse(stored) as BracketSlot[]);
     } catch { /* ignore */ }
+    setIsHydrated(true);
   }, []);
 
   const prevCompletedRef = useRef<Record<string, Team[]>>({});
 
   // Auto-persist bracket on every change (survives refresh, navigate away, etc.)
   useEffect(() => {
-    localStorage.setItem(LS_KEY, JSON.stringify(bracket));
-  }, [bracket]);
+    if (isHydrated) {
+      localStorage.setItem(LS_KEY, JSON.stringify(bracket));
+    }
+  }, [bracket, isHydrated]);
 
-  // Sync f-0 winner → store champion (outside render, avoids setState-in-render error)
+  // Sync f-0 winner ↔ store champion (outside render, avoids setState-in-render error).
+  // Also clears the champion when the final no longer has a winner (e.g. an earlier
+  // round was edited), so a stale champion never sticks around. Waits for hydration
+  // so the persisted champion isn't wiped by the initial empty bracket.
   const finalWinner = useMemo(() => bracket.find(s => s.id === "f-0")?.winner ?? null, [bracket]);
   useEffect(() => {
-    if (finalWinner) setChampion(finalWinner);
-  }, [finalWinner, setChampion]);
+    if (!isHydrated) return;
+    setChampion(finalWinner);
+  }, [finalWinner, setChampion, isHydrated]);
 
   // Show fireworks only when champion is set during THIS session
   useEffect(() => {
@@ -256,6 +253,15 @@ export default function BracketClient({ userId: _userId }: { userId: string }) {
       const pred: AIPrediction = await res.json();
       const winner = pred.scoreA >= pred.scoreB ? slot.homeTeam : slot.awayTeam;
       handlePenaltyWinner(slotId, winner);
+      setAiModal({
+        open: true,
+        teamA: slot.homeTeam,
+        teamB: slot.awayTeam,
+        scoreA: pred.scoreA,
+        scoreB: pred.scoreB,
+        reasoning: pred.reasoning,
+        confidence: pred.confidence,
+      });
     } catch { /* ignore */ }
     setDecidingPenalties(null);
   }, [bracket, handlePenaltyWinner]);
@@ -403,34 +409,34 @@ export default function BracketClient({ userId: _userId }: { userId: string }) {
     setChampion(null);
   };
 
-  // Copy share URL with encoded bracket state to clipboard
-  const shareBracket = () => {
-    const compact = bracket
-      .filter(s => s.homeTeam && s.awayTeam && s.scoreA !== null && s.scoreB !== null)
-      .map(s => [s.id, s.homeTeam!.id, s.awayTeam!.id, s.scoreA, s.scoreB]);
-    const encoded = btoa(JSON.stringify(compact));
-    const url = `${window.location.origin}/bracket?v=${encoded}`;
-    navigator.clipboard.writeText(url).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    });
-  };
+  const handleAIPredictSlot = useCallback(async (slotId: string) => {
+    const slot = bracket.find(s => s.id === slotId);
+    if (!slot?.homeTeam || !slot.awayTeam) return;
+    setDecidingAI(slotId);
+    try {
+      const res = await fetch("/api/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamA: slot.homeTeam.name, teamB: slot.awayTeam.name, matchId: slotId }),
+      });
+      const pred: AIPrediction = await res.json();
+      handleScoreChange(slotId, pred.scoreA, pred.scoreB);
+      setAiModal({
+        open: true,
+        teamA: slot.homeTeam,
+        teamB: slot.awayTeam,
+        scoreA: pred.scoreA,
+        scoreB: pred.scoreB,
+        reasoning: pred.reasoning,
+        confidence: pred.confidence,
+      });
+    } catch { /* ignore */ }
+    setDecidingAI(null);
+  }, [bracket, handleScoreChange]);
 
   const slotMap = useMemo(() => Object.fromEntries(bracket.map(s => [s.id, s])), [bracket]);
   const finalSlot = slotMap["f-0"];
 
-  const LEFT_COLS = [
-    { key: "l-r32", label: "Round of 32",  gap: "8px",  pt: "0px"  },
-    { key: "l-r16", label: "Round of 16",  gap: "24px", pt: "12px" },
-    { key: "l-qf",  label: "Quarterfinal", gap: "56px", pt: "28px" },
-    { key: "l-sf",  label: "Semifinal",    gap: "0px",  pt: "60px" },
-  ];
-  const RIGHT_COLS = [
-    { key: "r-sf",  label: "Semifinal",    gap: "0px",  pt: "60px" },
-    { key: "r-qf",  label: "Quarterfinal", gap: "56px", pt: "28px" },
-    { key: "r-r16", label: "Round of 16",  gap: "24px", pt: "12px" },
-    { key: "r-r32", label: "Round of 32",  gap: "8px",  pt: "0px"  },
-  ];
 
   const getColSlots = (key: string) =>
     bracket.filter(s => s.id.startsWith(key + "-")).sort((a, b) => sortIdx(a.id) - sortIdx(b.id));
@@ -455,12 +461,8 @@ export default function BracketClient({ userId: _userId }: { userId: string }) {
         )}
 
         {/* Secondary actions — right side */}
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-[10px] text-[#2d3a5a] hidden sm:block mr-1">Auto-saved</span>
-          <Button variant="secondary" size="sm" onClick={shareBracket}>
-            {copied ? <Copy className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-            {copied ? "Copied!" : "Share"}
-          </Button>
+        <div className="ml-auto flex items-center gap-2 animate-fade-in">
+          <DownloadBracketCard bracket={bracket} champion={champion} variant="secondary" size="sm" className="mt-0 w-auto" />
           <Button variant="ghost" size="sm" onClick={resetBracket}>
             Reset
           </Button>
@@ -484,79 +486,235 @@ export default function BracketClient({ userId: _userId }: { userId: string }) {
         <div className="flex items-start px-4 mx-auto" style={{ width: "fit-content", gap: "3px" }}>
 
           {/* LEFT HALF */}
-          {LEFT_COLS.map(({ key, label, gap, pt }) => (
-            <div key={key} className="flex flex-col" style={{ width: "192px" }}>
-              <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">{label}</div>
-              <div className="flex flex-col" style={{ gap, paddingTop: pt }}>
-                {getColSlots(key).map(slot => (
-                  <BracketCard
-                    key={slot.id}
-                    slot={slot}
-                    onPickHome={() => openTeamPicker(slot.id, "home")}
-                    onPickAway={() => openTeamPicker(slot.id, "away")}
-                    onScoreChange={(a, b) => handleScoreChange(slot.id, a, b)}
-                    pickable={slot.id.startsWith("l-r32-") || slot.id.startsWith("r-r32-")}
-                    onPenaltyWinner={winner => handlePenaltyWinner(slot.id, winner)}
-                    onAIPenalty={() => handleAIPenaltyDecide(slot.id)}
-                    decidingPenalties={decidingPenalties === slot.id}
-                  />
-                ))}
-              </div>
+          
+          {/* R32 Left */}
+          <div className="flex flex-col shrink-0" style={{ width: "150px" }}>
+            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">Round of 32</div>
+            <div className="flex flex-col justify-around h-[950px]">
+              {getColSlots("l-r32").map(slot => (
+                <BracketCard
+                  key={slot.id}
+                  slot={slot}
+                  onPickHome={() => openTeamPicker(slot.id, "home")}
+                  onPickAway={() => openTeamPicker(slot.id, "away")}
+                  onScoreChange={(a, b) => handleScoreChange(slot.id, a, b)}
+                  pickable={true}
+                  onPenaltyWinner={winner => handlePenaltyWinner(slot.id, winner)}
+                  onAIPenalty={() => handleAIPenaltyDecide(slot.id)}
+                  decidingPenalties={decidingPenalties === slot.id}
+                  onAIPredict={() => handleAIPredictSlot(slot.id)}
+                  decidingAI={decidingAI === slot.id}
+                />
+              ))}
             </div>
-          ))}
+          </div>
+
+          <BracketConnector type="r32-r16" side="left" />
+
+          {/* R16 Left */}
+          <div className="flex flex-col shrink-0" style={{ width: "150px" }}>
+            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">Round of 16</div>
+            <div className="flex flex-col justify-around h-[950px]">
+              {getColSlots("l-r16").map(slot => (
+                <BracketCard
+                  key={slot.id}
+                  slot={slot}
+                  onPickHome={() => openTeamPicker(slot.id, "home")}
+                  onPickAway={() => openTeamPicker(slot.id, "away")}
+                  onScoreChange={(a, b) => handleScoreChange(slot.id, a, b)}
+                  pickable={false}
+                  onPenaltyWinner={winner => handlePenaltyWinner(slot.id, winner)}
+                  onAIPenalty={() => handleAIPenaltyDecide(slot.id)}
+                  decidingPenalties={decidingPenalties === slot.id}
+                  onAIPredict={() => handleAIPredictSlot(slot.id)}
+                  decidingAI={decidingAI === slot.id}
+                />
+              ))}
+            </div>
+          </div>
+
+          <BracketConnector type="r16-qf" side="left" />
+
+          {/* QF Left */}
+          <div className="flex flex-col shrink-0" style={{ width: "150px" }}>
+            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">Quarterfinal</div>
+            <div className="flex flex-col justify-around h-[950px]">
+              {getColSlots("l-qf").map(slot => (
+                <BracketCard
+                  key={slot.id}
+                  slot={slot}
+                  onPickHome={() => openTeamPicker(slot.id, "home")}
+                  onPickAway={() => openTeamPicker(slot.id, "away")}
+                  onScoreChange={(a, b) => handleScoreChange(slot.id, a, b)}
+                  pickable={false}
+                  onPenaltyWinner={winner => handlePenaltyWinner(slot.id, winner)}
+                  onAIPenalty={() => handleAIPenaltyDecide(slot.id)}
+                  decidingPenalties={decidingPenalties === slot.id}
+                  onAIPredict={() => handleAIPredictSlot(slot.id)}
+                  decidingAI={decidingAI === slot.id}
+                />
+              ))}
+            </div>
+          </div>
+
+          <BracketConnector type="qf-sf" side="left" />
+
+          {/* SF Left */}
+          <div className="flex flex-col shrink-0" style={{ width: "150px" }}>
+            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">Semifinal</div>
+            <div className="flex flex-col justify-around h-[950px]">
+              {getColSlots("l-sf").map(slot => (
+                <BracketCard
+                  key={slot.id}
+                  slot={slot}
+                  onPickHome={() => openTeamPicker(slot.id, "home")}
+                  onPickAway={() => openTeamPicker(slot.id, "away")}
+                  onScoreChange={(a, b) => handleScoreChange(slot.id, a, b)}
+                  pickable={false}
+                  onPenaltyWinner={winner => handlePenaltyWinner(slot.id, winner)}
+                  onAIPenalty={() => handleAIPenaltyDecide(slot.id)}
+                  decidingPenalties={decidingPenalties === slot.id}
+                  onAIPredict={() => handleAIPredictSlot(slot.id)}
+                  decidingAI={decidingAI === slot.id}
+                />
+              ))}
+            </div>
+          </div>
+
+          <BracketConnector type="sf-f" side="left" />
 
           {/* CENTER — Trophy + Final */}
-          <div className="flex flex-col items-center shrink-0" style={{ width: "200px", paddingTop: "24px" }}>
-            <div className="text-[10px] font-bold text-[#f5c518] uppercase tracking-wider mb-3 text-center">Final</div>
+          <div className="relative shrink-0 flex flex-col items-center animate-fade-in" style={{ width: "180px", height: "950px", paddingTop: "24px" }}>
+            <div className="text-[10px] font-bold text-[#f5c518] uppercase tracking-wider mb-3 text-center absolute top-0 left-0 right-0">Final</div>
 
-            <div className="flex flex-col items-center mb-5 gap-2">
+            {/* Champion / Trophy centered below the top area */}
+            <div className="absolute top-[220px] flex flex-col items-center gap-2">
               <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#f5c518] to-[#c9a000] flex items-center justify-center animate-float shadow-2xl shadow-[#f5c51840]">
                 <Trophy className="w-10 h-10 text-[#080b14]" strokeWidth={1.5} />
               </div>
               <p className="text-[10px] text-[#f5c518] font-bold uppercase tracking-widest">WC 2026</p>
               {champion && (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f5c51815] border border-[#f5c51830]">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f5c51815] border border-[#f5c51830] animate-fade-in">
                   <FlagImage src={getFlagUrl(champion.flagCode, 20)} alt={champion.name} cdnSize={20} className="w-5 h-3.5 object-cover rounded-sm shrink-0" />
                   <span className="text-xs font-black text-[#f5c518]">{champion.name}</span>
                 </div>
               )}
             </div>
 
-            {finalSlot && (
-              <BracketCard
-                slot={finalSlot}
-                onPickHome={() => openTeamPicker("f-0", "home")}
-                onPickAway={() => openTeamPicker("f-0", "away")}
-                onScoreChange={(a, b) => handleScoreChange("f-0", a, b)}
-                pickable={false}
-                onPenaltyWinner={winner => handlePenaltyWinner("f-0", winner)}
-                onAIPenalty={() => handleAIPenaltyDecide("f-0")}
-                decidingPenalties={decidingPenalties === "f-0"}
-              />
-            )}
+            {/* Final Card positioned below the Trophy */}
+            <div className="absolute top-[620px] w-full flex flex-col items-center px-1">
+              {finalSlot && (
+                <BracketCard
+                  slot={finalSlot}
+                  onPickHome={() => openTeamPicker("f-0", "home")}
+                  onPickAway={() => openTeamPicker("f-0", "away")}
+                  onScoreChange={(a, b) => handleScoreChange("f-0", a, b)}
+                  pickable={false}
+                  onPenaltyWinner={winner => handlePenaltyWinner("f-0", winner)}
+                  onAIPenalty={() => handleAIPenaltyDecide("f-0")}
+                  decidingPenalties={decidingPenalties === "f-0"}
+                  onAIPredict={() => handleAIPredictSlot("f-0")}
+                  decidingAI={decidingAI === "f-0"}
+                />
+              )}
+            </div>
           </div>
 
-          {/* RIGHT HALF */}
-          {RIGHT_COLS.map(({ key, label, gap, pt }) => (
-            <div key={key} className="flex flex-col" style={{ width: "192px" }}>
-              <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">{label}</div>
-              <div className="flex flex-col" style={{ gap, paddingTop: pt }}>
-                {getColSlots(key).map(slot => (
-                  <BracketCard
-                    key={slot.id}
-                    slot={slot}
-                    onPickHome={() => openTeamPicker(slot.id, "home")}
-                    onPickAway={() => openTeamPicker(slot.id, "away")}
-                    onScoreChange={(a, b) => handleScoreChange(slot.id, a, b)}
-                    pickable={slot.id.startsWith("l-r32-") || slot.id.startsWith("r-r32-")}
-                    onPenaltyWinner={winner => handlePenaltyWinner(slot.id, winner)}
-                    onAIPenalty={() => handleAIPenaltyDecide(slot.id)}
-                    decidingPenalties={decidingPenalties === slot.id}
-                  />
-                ))}
-              </div>
+          <BracketConnector type="sf-f" side="right" />
+
+          {/* SF Right */}
+          <div className="flex flex-col shrink-0" style={{ width: "150px" }}>
+            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">Semifinal</div>
+            <div className="flex flex-col justify-around h-[950px]">
+              {getColSlots("r-sf").map(slot => (
+                <BracketCard
+                  key={slot.id}
+                  slot={slot}
+                  onPickHome={() => openTeamPicker(slot.id, "home")}
+                  onPickAway={() => openTeamPicker(slot.id, "away")}
+                  onScoreChange={(a, b) => handleScoreChange(slot.id, a, b)}
+                  pickable={false}
+                  onPenaltyWinner={winner => handlePenaltyWinner(slot.id, winner)}
+                  onAIPenalty={() => handleAIPenaltyDecide(slot.id)}
+                  decidingPenalties={decidingPenalties === slot.id}
+                  onAIPredict={() => handleAIPredictSlot(slot.id)}
+                  decidingAI={decidingAI === slot.id}
+                />
+              ))}
             </div>
-          ))}
+          </div>
+
+          <BracketConnector type="qf-sf" side="right" />
+
+          {/* QF Right */}
+          <div className="flex flex-col shrink-0" style={{ width: "150px" }}>
+            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">Quarterfinal</div>
+            <div className="flex flex-col justify-around h-[950px]">
+              {getColSlots("r-qf").map(slot => (
+                <BracketCard
+                  key={slot.id}
+                  slot={slot}
+                  onPickHome={() => openTeamPicker(slot.id, "home")}
+                  onPickAway={() => openTeamPicker(slot.id, "away")}
+                  onScoreChange={(a, b) => handleScoreChange(slot.id, a, b)}
+                  pickable={false}
+                  onPenaltyWinner={winner => handlePenaltyWinner(slot.id, winner)}
+                  onAIPenalty={() => handleAIPenaltyDecide(slot.id)}
+                  decidingPenalties={decidingPenalties === slot.id}
+                  onAIPredict={() => handleAIPredictSlot(slot.id)}
+                  decidingAI={decidingAI === slot.id}
+                />
+              ))}
+            </div>
+          </div>
+
+          <BracketConnector type="r16-qf" side="right" />
+
+          {/* R16 Right */}
+          <div className="flex flex-col shrink-0" style={{ width: "150px" }}>
+            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">Round of 16</div>
+            <div className="flex flex-col justify-around h-[950px]">
+              {getColSlots("r-r16").map(slot => (
+                <BracketCard
+                  key={slot.id}
+                  slot={slot}
+                  onPickHome={() => openTeamPicker(slot.id, "home")}
+                  onPickAway={() => openTeamPicker(slot.id, "away")}
+                  onScoreChange={(a, b) => handleScoreChange(slot.id, a, b)}
+                  pickable={false}
+                  onPenaltyWinner={winner => handlePenaltyWinner(slot.id, winner)}
+                  onAIPenalty={() => handleAIPenaltyDecide(slot.id)}
+                  decidingPenalties={decidingPenalties === slot.id}
+                  onAIPredict={() => handleAIPredictSlot(slot.id)}
+                  decidingAI={decidingAI === slot.id}
+                />
+              ))}
+            </div>
+          </div>
+
+          <BracketConnector type="r32-r16" side="right" />
+
+          {/* R32 Right */}
+          <div className="flex flex-col shrink-0" style={{ width: "150px" }}>
+            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">Round of 32</div>
+            <div className="flex flex-col justify-around h-[950px]">
+              {getColSlots("r-r32").map(slot => (
+                <BracketCard
+                  key={slot.id}
+                  slot={slot}
+                  onPickHome={() => openTeamPicker(slot.id, "home")}
+                  onPickAway={() => openTeamPicker(slot.id, "away")}
+                  onScoreChange={(a, b) => handleScoreChange(slot.id, a, b)}
+                  pickable={true}
+                  onPenaltyWinner={winner => handlePenaltyWinner(slot.id, winner)}
+                  onAIPenalty={() => handleAIPenaltyDecide(slot.id)}
+                  decidingPenalties={decidingPenalties === slot.id}
+                  onAIPredict={() => handleAIPredictSlot(slot.id)}
+                  decidingAI={decidingAI === slot.id}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -627,6 +785,56 @@ export default function BracketClient({ userId: _userId }: { userId: string }) {
           </div>
         </div>
       </Dialog>
+
+      {/* AI Prediction Reasoning Modal */}
+      {aiModal && (
+        <Dialog
+          open={aiModal.open}
+          onClose={() => setAiModal(null)}
+          title="AI Prediction Analysis"
+          className="max-w-md"
+        >
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-[#141928] border border-[#1e2640]">
+              <div className="text-center flex-1 min-w-0">
+                <div className="flex justify-center mb-1">
+                  <FlagImage src={getFlagUrl(aiModal.teamA.flagCode, 40)} cdnSize={40} className="w-8 h-5 object-cover rounded-sm" />
+                </div>
+                <p className="text-xs font-bold text-[#e8eaf0] truncate">{aiModal.teamA.name}</p>
+                <p className="text-2xl font-black text-[#f5c518] mt-1">{aiModal.scoreA}</p>
+              </div>
+              <div className="text-[#4a5570] font-bold text-lg px-3">—</div>
+              <div className="text-center flex-1 min-w-0">
+                <div className="flex justify-center mb-1">
+                  <FlagImage src={getFlagUrl(aiModal.teamB.flagCode, 40)} cdnSize={40} className="w-8 h-5 object-cover rounded-sm" />
+                </div>
+                <p className="text-xs font-bold text-[#e8eaf0] truncate">{aiModal.teamB.name}</p>
+                <p className="text-2xl font-black text-[#f5c518] mt-1">{aiModal.scoreB}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-[#8899bb] px-1">
+              <span className="flex items-center gap-1">
+                <Bot className="w-3.5 h-3.5 text-[#f5c518]" />
+                AI Prediction
+              </span>
+              <span className="px-2 py-0.5 rounded bg-[#f5c51815] text-[#f5c518] font-bold">
+                {aiModal.confidence}% Confidence
+              </span>
+            </div>
+
+            <div className="p-4 rounded-xl bg-[#141928] border border-[#1e2640]/50 max-h-56 overflow-y-auto">
+              <h4 className="text-xs font-bold text-[#e8eaf0] mb-2 uppercase tracking-wider">AI Reasoning</h4>
+              <p className="text-xs text-[#8899bb] leading-relaxed whitespace-pre-wrap">{aiModal.reasoning}</p>
+            </div>
+
+            <Button variant="gold" className="w-full text-xs font-bold py-2.5" onClick={() => setAiModal(null)}>
+              Done
+            </Button>
+          </div>
+        </Dialog>
+      )}
+
     </div>
   );
 }
@@ -682,6 +890,7 @@ function BracketHelpModal({ open, onClose }: { open: boolean; onClose: () => voi
 function BracketCard({
   slot, onPickHome, onPickAway, onScoreChange, pickable = false,
   onPenaltyWinner, onAIPenalty, decidingPenalties,
+  onAIPredict, decidingAI = false,
 }: {
   slot: BracketSlot;
   onPickHome: () => void;
@@ -691,6 +900,8 @@ function BracketCard({
   onPenaltyWinner: (winner: Team) => void;
   onAIPenalty: () => void;
   decidingPenalties: boolean;
+  onAIPredict: () => void;
+  decidingAI?: boolean;
 }) {
   const homeWins = !!slot.winner && slot.winner.id === slot.homeTeam?.id;
   const awayWins = !!slot.winner && slot.winner.id === slot.awayTeam?.id;
@@ -717,6 +928,26 @@ function BracketCard({
         onPickTeam={pickable ? onPickAway : undefined}
         onScoreChange={v => onScoreChange(slot.scoreA, v)}
       />
+
+      {/* AI Prediction button for individual match */}
+      {slot.homeTeam && slot.awayTeam && !bothScores && !awaitingPenalties && (
+        <div className="px-2.5 py-1.5 border-t border-[#1e2640] bg-[#0c101d] flex justify-end">
+          <button
+            onClick={onAIPredict}
+            disabled={decidingAI}
+            className="flex items-center gap-1 py-1 px-2 rounded bg-[#f5c51810] border border-[#f5c51820] hover:bg-[#f5c51820] hover:border-[#f5c51840] transition-all cursor-pointer text-[#f5c518] text-[9px] font-bold disabled:opacity-40"
+          >
+            {decidingAI ? (
+              <span className="text-[9px] text-[#f5c518]">Predicting…</span>
+            ) : (
+              <>
+                <Bot className="w-3 h-3 text-[#f5c518]" />
+                <span>AI Predict</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Penalty shootout picker — appears when scores are equal */}
       {awaitingPenalties && (
@@ -818,6 +1049,88 @@ function TeamInputRow({
         className={`w-8 text-center text-xs font-bold bg-[#141928] border-l border-[#1e2640] focus:outline-none focus:bg-[#1a2035] cursor-text shrink-0 ${isWinner ? "text-[#f5c518]" : "text-[#8899bb]"}`}
         placeholder="–"
       />
+    </div>
+  );
+}
+
+function BracketConnector({ type, side }: { type: "r32-r16" | "r16-qf" | "qf-sf" | "sf-f"; side: "left" | "right" }) {
+  const height = 950;
+  const width = 16;
+  const strokeColor = "rgba(245, 197, 24, 0.15)";
+  const strokeWidth = 2;
+
+  const getPaths = () => {
+    const paths: string[] = [];
+    const midX = width / 2;
+
+    if (type === "r32-r16") {
+      for (let j = 0; j < 4; j++) {
+        const y1 = (4 * j + 1) * height / 16;
+        const y2 = (4 * j + 3) * height / 16;
+        const yMid = (4 * j + 2) * height / 16;
+
+        if (side === "left") {
+          paths.push(`M 0 ${y1} L ${midX} ${y1} L ${midX} ${yMid} L ${width} ${yMid}`);
+          paths.push(`M 0 ${y2} L ${midX} ${y2} L ${midX} ${yMid} L ${width} ${yMid}`);
+        } else {
+          paths.push(`M ${width} ${y1} L ${midX} ${y1} L ${midX} ${yMid} L 0 ${yMid}`);
+          paths.push(`M ${width} ${y2} L ${midX} ${y2} L ${midX} ${yMid} L 0 ${yMid}`);
+        }
+      }
+    } else if (type === "r16-qf") {
+      for (let j = 0; j < 2; j++) {
+        const y1 = (8 * j + 2) * height / 16;
+        const y2 = (8 * j + 6) * height / 16;
+        const yMid = (8 * j + 4) * height / 16;
+
+        if (side === "left") {
+          paths.push(`M 0 ${y1} L ${midX} ${y1} L ${midX} ${yMid} L ${width} ${yMid}`);
+          paths.push(`M 0 ${y2} L ${midX} ${y2} L ${midX} ${yMid} L ${width} ${yMid}`);
+        } else {
+          paths.push(`M ${width} ${y1} L ${midX} ${y1} L ${midX} ${yMid} L 0 ${yMid}`);
+          paths.push(`M ${width} ${y2} L ${midX} ${y2} L ${midX} ${yMid} L 0 ${yMid}`);
+        }
+      }
+    } else if (type === "qf-sf") {
+      const y1 = 4 * height / 16;
+      const y2 = 12 * height / 16;
+      const yMid = 8 * height / 16;
+
+      if (side === "left") {
+        paths.push(`M 0 ${y1} L ${midX} ${y1} L ${midX} ${yMid} L ${width} ${yMid}`);
+        paths.push(`M 0 ${y2} L ${midX} ${y2} L ${midX} ${yMid} L ${width} ${yMid}`);
+      } else {
+        paths.push(`M ${width} ${y1} L ${midX} ${y1} L ${midX} ${yMid} L 0 ${yMid}`);
+        paths.push(`M ${width} ${y2} L ${midX} ${y2} L ${midX} ${yMid} L 0 ${yMid}`);
+      }
+    } else if (type === "sf-f") {
+      const yMid = 8 * height / 16;
+      const yFinal = 665;
+
+      if (side === "left") {
+        paths.push(`M 0 ${yMid} L ${midX} ${yMid} L ${midX} ${yFinal} L ${width} ${yFinal}`);
+      } else {
+        paths.push(`M ${width} ${yMid} L ${midX} ${yMid} L ${midX} ${yFinal} L 0 ${yFinal}`);
+      }
+    }
+
+    return paths;
+  };
+
+  return (
+    <div className="flex flex-col shrink-0" style={{ width: `${width}px` }}>
+      <div className="h-[28px]" />
+      <svg width={width} height={height} className="pointer-events-none">
+        {getPaths().map((p, idx) => (
+          <path
+            key={idx}
+            d={p}
+            fill="none"
+            stroke={strokeColor}
+            strokeWidth={strokeWidth}
+          />
+        ))}
+      </svg>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { getConfidenceLabel } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { Bot, ArrowLeft, Share2, Copy, Check } from "lucide-react";
+import { DownloadPredictionCard } from "@/components/share/DownloadPredictionCard";
 
 interface PredictPageProps {
   params: Promise<{ matchId: string }>;
@@ -194,6 +195,14 @@ export default function PredictPage({ params }: PredictPageProps) {
                     <Share2 className="w-4 h-4" /> WhatsApp
                   </a>
                 </div>
+                <DownloadPredictionCard
+                  teamA={teamA}
+                  teamB={teamB}
+                  scoreA={prediction.scoreA}
+                  scoreB={prediction.scoreB}
+                  winner={prediction.winner}
+                  confidence={prediction.confidence}
+                />
               </div>
             )}
           </div>

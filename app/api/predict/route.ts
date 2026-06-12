@@ -6,6 +6,40 @@ function getGroqClient() {
   return new Groq({ apiKey: process.env.GROQ_API_KEY });
 }
 
+// Groq rate limits are per model, so a secondary model keeps its own quota
+// even when the primary one is exhausted.
+const MODEL_CHAIN = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"] as const;
+
+function isRecoverableGroqError(error: unknown): boolean {
+  if (!(error instanceof Groq.APIError)) return false;
+  const status = error.status ?? 0;
+  // 429: rate limit / quota exhausted; 400/404: model decommissioned; 5xx: service down
+  return status === 429 || status === 400 || status === 404 || status >= 500;
+}
+
+async function createCompletionWithFallback(
+  groq: Groq,
+  messages: Groq.Chat.ChatCompletionMessageParam[]
+) {
+  let lastError: unknown;
+  for (const model of MODEL_CHAIN) {
+    try {
+      return await groq.chat.completions.create({
+        model,
+        messages,
+        temperature: 0.7,
+        max_tokens: 1024,
+        response_format: { type: "json_object" },
+      });
+    } catch (error) {
+      if (!isRecoverableGroqError(error)) throw error;
+      console.warn(`Groq model ${model} failed, trying next in chain:`, error);
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
 async function fetchTeamStats(teamId: number) {
   try {
     const res = await fetch(
@@ -74,18 +108,16 @@ export async function POST(request: NextRequest) {
     const statsContext = buildStatsContext(teamA, teamB, statsA, statsB, h2h);
 
     const groq = getGroqClient();
-    const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [
-        {
-          role: "system",
-          content: `You are a world-class football analyst specializing in FIFA World Cup predictions.
+    const messages: Groq.Chat.ChatCompletionMessageParam[] = [
+      {
+        role: "system",
+        content: `You are a world-class football analyst specializing in FIFA World Cup predictions.
 You analyze team statistics, head-to-head records, current form, and tactical matchups to provide expert predictions.
 Always respond with valid JSON only, no markdown or extra text.`,
-        },
-        {
-          role: "user",
-          content: `Analyze this FIFA World Cup 2026 match and predict the result.
+      },
+      {
+        role: "user",
+        content: `Analyze this FIFA World Cup 2026 match and predict the result.
 
 ${statsContext}
 
@@ -97,12 +129,26 @@ Respond with this exact JSON structure:
   "confidence": <integer 40-95>,
   "reasoning": "<2-3 paragraph expert analysis explaining the prediction, key factors, tactical considerations, and historical context>"
 }`,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 1024,
-      response_format: { type: "json_object" },
-    });
+      },
+    ];
+
+    let completion: Groq.Chat.ChatCompletion;
+    try {
+      completion = await createCompletionWithFallback(groq, messages);
+    } catch (error) {
+      console.error("All Groq models failed:", error);
+      // A stale prediction beats no prediction.
+      if (cached) {
+        return Response.json({ ...cached.data, cached: true, stale: true });
+      }
+      if (error instanceof Groq.APIError && error.status === 429) {
+        return Response.json(
+          { error: "AI service is at capacity right now — please try again in a few minutes." },
+          { status: 429 }
+        );
+      }
+      throw error;
+    }
 
     const content = completion.choices[0]?.message?.content;
     if (!content) throw new Error("Empty response from Groq");
