@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { Bot, Trophy, ArrowRight } from "lucide-react";
+import { DownloadPredictionCard } from "@/components/share/DownloadPredictionCard";
 
 interface SharePageProps {
   params: Promise<{ predictionId: string }>;
@@ -91,6 +92,16 @@ export default async function SharePage({ params }: SharePageProps) {
             <Badge variant={confidence >= 70 ? "green" : confidence >= 50 ? "gold" : "red"}>
               {confidence}% confidence
             </Badge>
+          </div>
+          <div className="mt-4 pt-4 border-t border-[#1e2640]/50">
+            <DownloadPredictionCard
+              teamA={pred.home_team}
+              teamB={pred.away_team}
+              scoreA={pred.score_a}
+              scoreB={pred.score_b}
+              winner={pred.winner}
+              confidence={confidence}
+            />
           </div>
         </div>
 

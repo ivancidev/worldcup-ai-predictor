@@ -3,13 +3,15 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { WC2026_GROUPS, getFlagUrl } from "@/lib/world-cup-data";
 import { usePredictionStore } from "@/lib/store";
-import { AIPrediction, Prediction, Team } from "@/lib/types";
+import { AIPrediction, Prediction, Team, Fixture } from "@/lib/types";
 import { Dialog } from "@/components/ui/Dialog";
 import { FlagImage } from "@/components/ui/FlagImage";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { createClient } from "@/lib/supabase/client";
-import { Bot, CheckCircle, ArrowRight, Plus } from "lucide-react";
+import { Bot, CheckCircle, ArrowRight, Plus, Share2, Copy, Check } from "lucide-react";
+import { formatMatchDateTime, getBrowserTimezone } from "@/lib/timezone";
+import { DownloadPredictionCard } from "@/components/share/DownloadPredictionCard";
 
 interface GroupsClientProps {
   userId: string;
@@ -19,6 +21,14 @@ interface GroupsClientProps {
 interface MatchPrediction {
   homeScore: number;
   awayScore: number;
+}
+
+function findRealFixture(homeName: string, awayName: string, fixtures: Fixture[]): Fixture | undefined {
+  return fixtures.find(
+    (f) =>
+      (f.homeTeam.name === homeName && f.awayTeam.name === awayName) ||
+      (f.homeTeam.name === awayName && f.awayTeam.name === homeName)
+  );
 }
 
 function calcGroupStandings(
@@ -62,6 +72,17 @@ export default function GroupsClient({ userId, savedPredictions }: GroupsClientP
   const [savingMatch, setSavingMatch] = useState<string | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
   const [editModal, setEditModal] = useState<EditModal | null>(null);
+  const [realFixtures, setRealFixtures] = useState<Fixture[]>([]);
+  const [fullPredictions, setFullPredictions] = useState<Record<string, Prediction>>({});
+  const [shareModal, setShareModal] = useState<{
+    open: boolean;
+    matchId: string;
+    homeTeam: Team | null;
+    awayTeam: Team | null;
+    loading: boolean;
+    shareSlug: string | null;
+  }>({ open: false, matchId: "", homeTeam: null, awayTeam: null, loading: false, shareSlug: null });
+  const [shareCopied, setShareCopied] = useState(false);
   const [aiModal, setAiModal] = useState<{
     open: boolean;
     matchId: string;
@@ -70,6 +91,60 @@ export default function GroupsClient({ userId, savedPredictions }: GroupsClientP
     result?: AIPrediction;
     loading: boolean;
   }>({ open: false, matchId: "", homeTeam: null, awayTeam: null, loading: false });
+
+  const handleOpenShareModal = async (matchId: string, homeTeam: Team, awayTeam: Team) => {
+    const pred = fullPredictions[matchId];
+    if (!pred) return;
+
+    setShareModal({
+      open: true,
+      matchId,
+      homeTeam,
+      awayTeam,
+      loading: true,
+      shareSlug: null,
+    });
+
+    try {
+      const res = await fetch("/api/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ predictionId: pred.id }),
+      });
+      const data = await res.json();
+      setShareModal(prev => ({ ...prev, shareSlug: data.slug, loading: false }));
+    } catch {
+      setShareModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const copyShareLink = async () => {
+    if (!shareModal.shareSlug) return;
+    await navigator.clipboard.writeText(`${window.location.origin}/share/${shareModal.shareSlug}`);
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 2000);
+  };
+
+  // Fetch real/static fixtures for group stage on mount
+  useEffect(() => {
+    fetch("/api/fixtures?round=Group Stage")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json && Array.isArray(json.data)) {
+          setRealFixtures(json.data);
+        }
+      })
+      .catch((err) => console.error("Error fetching group stage fixtures:", err));
+  }, []);
+
+  const [mounted, setMounted] = useState(false);
+  const [userTz, setUserTz] = useState<string>("UTC");
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUserTz(getBrowserTimezone());
+    setMounted(true);
+  }, []);
 
   const checkGroupComplete = useCallback(
     (group: string, savedSet: Set<string>, predictions: Record<string, MatchPrediction>) => {
@@ -89,12 +164,15 @@ export default function GroupsClient({ userId, savedPredictions }: GroupsClientP
   useEffect(() => {
     const predByTeams: Record<string, { score_a: number; score_b: number }> = {};
     savedPredictions.forEach(p => {
-      if (p.home_team && p.away_team)
+      if (p.home_team && p.away_team) {
         predByTeams[`${p.home_team}|${p.away_team}`] = { score_a: p.score_a, score_b: p.score_b };
+        predByTeams[`${p.away_team}|${p.home_team}`] = { score_a: p.score_a, score_b: p.score_b };
+      }
     });
 
     const initial: Record<string, MatchPrediction> = {};
     const saved = new Set<string>();
+    const fullPredMap: Record<string, Prediction> = {};
 
     Object.entries(WC2026_GROUPS).forEach(([group, teams]) => {
       for (let i = 0; i < teams.length; i++) {
@@ -111,6 +189,15 @@ export default function GroupsClient({ userId, savedPredictions }: GroupsClientP
               homeTeam: teams[i],
               awayTeam: teams[j],
             });
+
+            const dbRecord = savedPredictions.find(
+              (p) =>
+                (p.home_team === teams[i].name && p.away_team === teams[j].name) ||
+                (p.home_team === teams[j].name && p.away_team === teams[i].name)
+            );
+            if (dbRecord) {
+              fullPredMap[key] = dbRecord;
+            }
           }
         }
       }
@@ -119,6 +206,7 @@ export default function GroupsClient({ userId, savedPredictions }: GroupsClientP
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalPredictions(initial);
     setSavedMatches(saved);
+    setFullPredictions(fullPredMap);
     Object.keys(WC2026_GROUPS).forEach(g => checkGroupComplete(g, saved, initial));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedPredictions]);
@@ -136,7 +224,7 @@ export default function GroupsClient({ userId, savedPredictions }: GroupsClientP
     const matchIdNum = parseInt(matchId.replace(/\D/g, "").padEnd(8, "0").slice(0, 8));
     const winner = homeScore > awayScore ? homeTeam.name : homeScore < awayScore ? awayTeam.name : "Draw";
 
-    const { error } = await supabase.from("predictions").upsert({
+    const { data: pred, error } = await supabase.from("predictions").upsert({
       user_id: userId,
       match_id: matchIdNum,
       score_a: homeScore,
@@ -145,14 +233,15 @@ export default function GroupsClient({ userId, savedPredictions }: GroupsClientP
       ai_reasoning: aiReasoning ?? "",
       home_team: homeTeam.name,
       away_team: awayTeam.name,
-    }, { onConflict: "user_id,match_id" });
+    }, { onConflict: "user_id,match_id" }).select().single();
 
-    if (!error) {
+    if (!error && pred) {
       const newPred = { homeScore, awayScore };
       const newSaved = new Set([...savedMatches, matchId]);
       const updatedPreds = { ...localPredictions, [matchId]: newPred };
       setSavedMatches(newSaved);
       setLocalPredictions(updatedPreds);
+      setFullPredictions(prev => ({ ...prev, [matchId]: pred }));
       setGroupResult(matchId, { matchId, homeScore, awayScore, homeTeam, awayTeam });
       checkGroupComplete(matchId.split("-")[0], newSaved, updatedPreds);
     }
@@ -226,6 +315,10 @@ export default function GroupsClient({ userId, savedPredictions }: GroupsClientP
             savingMatch={savingMatch}
             onOpenModal={openEditModal}
             onAIPredict={handleAIPredict}
+            realFixtures={realFixtures}
+            userTz={userTz}
+            mounted={mounted}
+            onShare={handleOpenShareModal}
           />
         ))}
       </div>
@@ -398,12 +491,85 @@ export default function GroupsClient({ userId, savedPredictions }: GroupsClientP
           <p className="text-[#ef4444] text-sm">Failed to generate prediction. Try again.</p>
         )}
       </Dialog>
+
+      {/* ── Share / Export Modal ── */}
+      <Dialog
+        open={shareModal.open}
+        onClose={() => setShareModal(p => ({ ...p, open: false }))}
+        title={`Share Prediction: ${shareModal.homeTeam?.name ?? ""} vs ${shareModal.awayTeam?.name ?? ""}`}
+        className="max-w-md"
+      >
+        {shareModal.loading ? (
+          <div className="flex flex-col items-center gap-4 py-8">
+            <div className="w-12 h-12 rounded-full border-2 border-[#f5c518] border-t-transparent animate-spin" />
+            <p className="text-[#8899bb]">Generating share link...</p>
+          </div>
+        ) : shareModal.shareSlug ? (
+          <div className="space-y-5">
+            <p className="text-[#8899bb] text-sm">
+              Your prediction is saved. Share the link or download a custom image card for social media:
+            </p>
+            <div className="flex gap-2">
+              <input
+                value={`${window.location.origin}/share/${shareModal.shareSlug}`}
+                readOnly
+                className="flex-1 px-3 py-2 rounded-lg bg-[#141928] border border-[#1e2640] text-[#e8eaf0] text-sm cursor-text focus:outline-none"
+              />
+              <button
+                onClick={copyShareLink}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1e2640] border border-[#2d3a5a] text-[#8899bb] hover:text-[#e8eaf0] text-sm font-medium transition-colors cursor-pointer"
+              >
+                {shareCopied ? <Check className="w-4 h-4 text-[#22c55e]" /> : <Copy className="w-4 h-4" />}
+                {shareCopied ? "Copied!" : "Copy"}
+              </button>
+            </div>
+
+            <div className="flex gap-2">
+              <a
+                href={`https://twitter.com/intent/tweet?text=My+prediction+for+${encodeURIComponent(shareModal.homeTeam?.name ?? "")}+vs+${encodeURIComponent(shareModal.awayTeam?.name ?? "")}+${encodeURIComponent(`${window.location.origin}/share/${shareModal.shareSlug}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-[#1da1f220] border border-[#1da1f230] text-[#1da1f2] text-sm font-medium hover:bg-[#1da1f230] transition-colors cursor-pointer"
+              >
+                <span className="font-black text-sm">𝕏</span> Twitter
+              </a>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(`My prediction: ${shareModal.homeTeam?.name} vs ${shareModal.awayTeam?.name} ${window.location.origin}/share/${shareModal.shareSlug}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-[#25d36620] border border-[#25d36630] text-[#25d366] text-sm font-medium hover:bg-[#25d36630] transition-colors cursor-pointer"
+              >
+                <Share2 className="w-4 h-4" /> WhatsApp
+              </a>
+            </div>
+
+            <div className="pt-4 border-t border-[#1e2640]/50">
+              {(() => {
+                const pred = fullPredictions[shareModal.matchId];
+                if (!pred) return null;
+                return (
+                  <DownloadPredictionCard
+                    teamA={shareModal.homeTeam?.name ?? ""}
+                    teamB={shareModal.awayTeam?.name ?? ""}
+                    scoreA={pred.score_a}
+                    scoreB={pred.score_b}
+                    winner={pred.winner}
+                    confidence={pred.confidence || 60}
+                  />
+                );
+              })()}
+            </div>
+          </div>
+        ) : (
+          <p className="text-[#ef4444] text-sm">Failed to generate share link. Try again.</p>
+        )}
+      </Dialog>
     </div>
   );
 }
 
 function GroupCard({
-  group, teams, localPredictions, savedMatches, savingMatch, onOpenModal, onAIPredict,
+  group, teams, localPredictions, savedMatches, savingMatch, onOpenModal, onAIPredict, realFixtures, userTz, mounted, onShare,
 }: {
   group: string;
   teams: Team[];
@@ -412,21 +578,35 @@ function GroupCard({
   savingMatch: string | null;
   onOpenModal: (matchId: string, home: Team, away: Team) => void;
   onAIPredict: (matchId: string, homeTeam: Team, awayTeam: Team) => void;
+  realFixtures: Fixture[];
+  userTz: string;
+  mounted: boolean;
+  onShare: (matchId: string, home: Team, away: Team) => void;
 }) {
   const matches = useMemo(() => {
     const m: Array<{ id: string; home: Team; away: Team }> = [];
     for (let i = 0; i < teams.length; i++)
       for (let j = i + 1; j < teams.length; j++)
         m.push({ id: `${group}-${i}-${j}`, home: teams[i], away: teams[j] });
-    return m;
-  }, [group, teams]);
+
+    // Sort matches chronologically based on real/static fixture dates/times
+    return m.sort((a, b) => {
+      const fA = findRealFixture(a.home.name, a.away.name, realFixtures);
+      const fB = findRealFixture(b.home.name, b.away.name, realFixtures);
+      const tsA = fA ? fA.timestamp : 0;
+      const tsB = fB ? fB.timestamp : 0;
+      return tsA - tsB;
+    });
+  }, [group, teams, realFixtures]);
 
   const standings = useMemo(
     () => calcGroupStandings(teams, group, localPredictions),
     [teams, group, localPredictions]
   );
 
-  const isComplete = matches.every(m => savedMatches.has(m.id));
+  const isComplete = useMemo(() => {
+    return matches.every(m => savedMatches.has(m.id));
+  }, [matches, savedMatches]);
 
   return (
     <div className="rounded-2xl bg-[#0e1220] border border-[#1e2640] overflow-hidden">
@@ -482,8 +662,24 @@ function GroupCard({
           const isSaved = savedMatches.has(match.id);
           const isSaving = savingMatch === match.id;
 
+          const f = findRealFixture(match.home.name, match.away.name, realFixtures);
+          const live = f ? ["1H", "2H", "HT", "ET", "PEN"].includes(f.status.short) : false;
+          const matchTimeStr = mounted && f ? formatMatchDateTime(f.timestamp, userTz) : "";
+
           return (
             <div key={match.id} className="px-4 py-3">
+              {/* Match schedule date/time and live indicator */}
+              <div className="flex items-center justify-between mb-1.5 px-0.5">
+                <span className="text-[10px] font-bold text-[#4a5570]">
+                  {matchTimeStr}
+                </span>
+                {live && (
+                  <span className="flex items-center gap-1 text-[8px] font-black text-[#ef4444] bg-[#ef444410] border border-[#ef444425] px-1.5 py-0.5 rounded-md uppercase tracking-wider animate-pulse">
+                    ● Live
+                  </span>
+                )}
+              </div>
+
               <div className="flex items-center gap-2 mb-2.5">
                 <TeamPill team={match.home} />
                 <div className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5 rounded-xl bg-[#141928] border border-[#1e2640] min-w-[72px] justify-center">
@@ -502,7 +698,7 @@ function GroupCard({
                 <button
                   disabled={isSaving}
                   onClick={() => onOpenModal(match.id, match.home, match.away)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer disabled:opacity-40 ${
+                  className={`flex-grow flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer disabled:opacity-40 ${
                     isSaved
                       ? "bg-[#22c55e12] border border-[#22c55e25] text-[#22c55e] hover:bg-[#22c55e20]"
                       : "bg-[#1e2640] border border-[#2d3a5a] text-[#8899bb] hover:bg-[#2d3a5a] hover:text-[#e8eaf0]"
@@ -524,10 +720,19 @@ function GroupCard({
                 </button>
                 <button
                   onClick={() => onAIPredict(match.id, match.home, match.away)}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold bg-[#f5c51810] border border-[#f5c51820] text-[#f5c518] hover:bg-[#f5c51820] transition-all cursor-pointer"
+                  className="flex-grow flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold bg-[#f5c51810] border border-[#f5c51820] text-[#f5c518] hover:bg-[#f5c51820] transition-all cursor-pointer"
                 >
                   <Bot className="w-3 h-3" /> AI Predict
                 </button>
+                {isSaved && (
+                  <button
+                    onClick={() => onShare(match.id, match.home, match.away)}
+                    className="flex items-center justify-center p-1.5 rounded-lg bg-[#f5c51815] border border-[#f5c51830] text-[#f5c518] hover:bg-[#f5c51825] transition-all cursor-pointer shrink-0"
+                    title="Share / Export Prediction"
+                  >
+                    <Share2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
           );
