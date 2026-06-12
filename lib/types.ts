@@ -113,3 +113,15 @@ export interface TeamStats {
     against: { average: { total: string } };
   };
 }
+
+export interface BracketSlot {
+  id: string;
+  round: string;
+  side: "left" | "right" | "center";
+  subtitle?: string;
+  homeTeam: Team | null;
+  awayTeam: Team | null;
+  winner: Team | null;
+  scoreA: number | null;
+  scoreB: number | null;
+}

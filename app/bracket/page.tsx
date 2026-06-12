@@ -21,7 +21,7 @@ export default async function BracketPage() {
             Round of 32 → Round of 16 → Quarterfinals → Semifinals → Final
           </p>
         </div>
-        <BracketClient userId={user.id} />
+        <BracketClient />
       </div>
     </div>
   );
