@@ -16,6 +16,8 @@ import { DownloadPredictionCard } from "@/components/share/DownloadPredictionCar
 interface GroupsClientProps {
   userId: string;
   savedPredictions: Prediction[];
+  /** Group letter (A-L) to pre-select, e.g. when arriving from the dashboard */
+  initialGroup?: string;
 }
 
 interface MatchPrediction {
@@ -65,12 +67,12 @@ interface EditModal {
   awayScore: number;
 }
 
-export default function GroupsClient({ userId, savedPredictions }: GroupsClientProps) {
+export default function GroupsClient({ userId, savedPredictions, initialGroup }: GroupsClientProps) {
   const { setGroupResult, setCompletedGroup } = usePredictionStore();
   const [localPredictions, setLocalPredictions] = useState<Record<string, MatchPrediction>>({});
   const [savedMatches, setSavedMatches] = useState<Set<string>>(new Set());
   const [savingMatch, setSavingMatch] = useState<string | null>(null);
-  const [selectedGroup, setSelectedGroup] = useState<string>("all");
+  const [selectedGroup, setSelectedGroup] = useState<string>(initialGroup ?? "all");
   const [editModal, setEditModal] = useState<EditModal | null>(null);
   const [realFixtures, setRealFixtures] = useState<Fixture[]>([]);
   const [fullPredictions, setFullPredictions] = useState<Record<string, Prediction>>({});

@@ -2,7 +2,17 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import GroupsClient from "./GroupsClient";
 
-export default async function GroupsPage() {
+export default async function GroupsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { group } = await searchParams;
+  const initialGroup =
+    typeof group === "string" && /^[A-L]$/.test(group.toUpperCase())
+      ? group.toUpperCase()
+      : undefined;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -29,6 +39,7 @@ export default async function GroupsPage() {
         <GroupsClient
           userId={user.id}
           savedPredictions={userPredictions || []}
+          initialGroup={initialGroup}
         />
       </div>
     </div>

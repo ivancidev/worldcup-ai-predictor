@@ -52,16 +52,10 @@ export function FixtureRow({ fixture, userTz }: FixtureRowProps) {
   const finished  = isFinished(fixture.status);
   const localTime = formatLocalTime(fixture.timestamp, userTz);
   const groupLabel = fixture.league.round.match(/Group [A-L]/)?.[0] ?? null;
+  const groupLetter = groupLabel?.slice(-1) ?? null;
 
-  return (
-    <Link
-      href="/groups"
-      className={`group flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-200 cursor-pointer ${
-        live
-          ? "bg-[#22c55e06] border-[#22c55e25] hover:border-[#22c55e40]"
-          : "bg-[#0e1220] border-[#1e2640] hover:border-[#2d3a5a]"
-      }`}
-    >
+  const rowContent = (
+    <>
       {/* ── Home ── */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
         <TeamFlag name={fixture.homeTeam.name} flagCode={fixture.homeTeam.flagCode} />
@@ -92,6 +86,28 @@ export function FixtureRow({ fixture, userTz }: FixtureRowProps) {
         </span>
         <TeamFlag name={fixture.awayTeam.name} flagCode={fixture.awayTeam.flagCode} />
       </div>
+    </>
+  );
+
+  // Finished matches: nothing left to predict, so no link and no CTA
+  if (finished) {
+    return (
+      <div className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-[#0e1220] border-[#1e2640]">
+        {rowContent}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={groupLetter ? `/groups?group=${groupLetter}` : "/groups"}
+      className={`group flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-200 cursor-pointer ${
+        live
+          ? "bg-[#22c55e06] border-[#22c55e25] hover:border-[#22c55e40]"
+          : "bg-[#0e1220] border-[#1e2640] hover:border-[#2d3a5a]"
+      }`}
+    >
+      {rowContent}
 
       {/* ── Predict CTA ── */}
       <ChevronRight className="w-4 h-4 text-[#4a5570] group-hover:text-[#f5c518] group-hover:translate-x-0.5 transition-all shrink-0" />

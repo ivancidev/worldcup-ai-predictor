@@ -47,12 +47,16 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
       <div
         className={cn(
           "relative z-10 w-full max-w-lg bg-[#0e1220] border border-[#1e2640] rounded-2xl shadow-2xl",
+          // Cap the height so long content scrolls inside the dialog instead
+          // of pushing the header (and close button) off-screen on mobile.
+          // dvh accounts for the collapsing mobile browser URL bar.
+          "flex flex-col max-h-[calc(100dvh-2rem)]",
           "animate-in fade-in-0 zoom-in-95 duration-200",
           className
         )}
       >
         {title && (
-          <div className="flex items-center justify-between p-5 border-b border-[#1e2640]">
+          <div className="flex items-center justify-between p-5 border-b border-[#1e2640] shrink-0">
             <h2 className="text-lg font-bold text-[#e8eaf0]">{title}</h2>
             <button
               onClick={onClose}
@@ -64,7 +68,7 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
             </button>
           </div>
         )}
-        <div className="p-5">{children}</div>
+        <div className="p-5 overflow-y-auto">{children}</div>
       </div>
     </div>
   );
