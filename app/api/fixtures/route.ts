@@ -142,16 +142,53 @@ function buildStaticFixtures(): RawFixture[] {
     const away  = teams[ai];
     const dt    = new Date(`${dateStr}T${String(hour).padStart(2, "0")}:00:00Z`);
 
-    const isPast = dt.getTime() < Date.now();
-    const goals = isPast
-      ? {
-          home: (idx * 3 + 2) % 4,
-          away: (idx * 2 + 1) % 3,
-        }
-      : { home: null, away: null };
-    const status = isPast
-      ? { short: "FT", long: "Finished", elapsed: 90 }
-      : { short: "NS", long: "Not Started", elapsed: null };
+    const now = Date.now();
+    const startTime = dt.getTime();
+    const elapsedMs = now - startTime;
+    const matchDurationMs = 120 * 60 * 1000; // 120 mins including half time
+
+    let status: { short: string; long: string; elapsed: number | null };
+    let goals: { home: number | null; away: number | null };
+
+    if (elapsedMs < 0) {
+      // Not Started
+      status = { short: "NS", long: "Not Started", elapsed: null };
+      goals = { home: null, away: null };
+    } else if (elapsedMs >= matchDurationMs) {
+      // Finished
+      status = { short: "FT", long: "Finished", elapsed: 90 };
+      goals = {
+        home: (idx * 3 + 2) % 4,
+        away: (idx * 2 + 1) % 3,
+      };
+    } else {
+      // Live! (In progress)
+      const elapsedMins = Math.floor(elapsedMs / (60 * 1000));
+      
+      if (elapsedMins < 45) {
+        status = { short: "1H", long: "First Half", elapsed: elapsedMins || 1 };
+      } else if (elapsedMins < 60) {
+        status = { short: "HT", long: "Halftime", elapsed: 45 };
+      } else if (elapsedMins < 105) {
+        status = { short: "2H", long: "Second Half", elapsed: elapsedMins - 15 };
+      } else {
+        status = { short: "2H", long: "Second Half", elapsed: 90 };
+      }
+
+      const homeFinal = (idx * 3 + 2) % 4;
+      const awayFinal = (idx * 2 + 1) % 3;
+
+      let homeLive = 0;
+      if (homeFinal >= 1 && elapsedMins >= 15) homeLive = 1;
+      if (homeFinal >= 2 && elapsedMins >= 50) homeLive = 2;
+      if (homeFinal >= 3 && elapsedMins >= 80) homeLive = 3;
+
+      let awayLive = 0;
+      if (awayFinal >= 1 && elapsedMins >= 30) awayLive = 1;
+      if (awayFinal >= 2 && elapsedMins >= 75) awayLive = 2;
+
+      goals = { home: homeLive, away: awayLive };
+    }
 
     return {
       id: 9000 + idx,
