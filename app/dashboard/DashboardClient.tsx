@@ -12,7 +12,7 @@ import {
 import { sortTodayFixtures } from "@/lib/fixture-status";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { FixtureRow } from "@/components/dashboard/FixtureRow";
-import { Calendar, Clock, Wifi } from "lucide-react";
+import { Calendar, Clock } from "lucide-react";
 
 interface FetchState {
   fixtures: Fixture[];
@@ -89,7 +89,7 @@ export default function DashboardClient() {
       <div className="flex items-start justify-between mb-4">
         <div>
           <h2 className="text-base font-bold text-[#e8eaf0]">
-            Today&apos;s Matches
+            Today&apos;s Schedule
           </h2>
           {dayLabel && (
             <p className="text-xs text-[#4a5570] mt-0.5">{dayLabel}</p>
@@ -97,9 +97,9 @@ export default function DashboardClient() {
         </div>
 
         {!loading && (
-          <div className="flex items-center gap-1.5 text-xs mt-0.5">
-            <Wifi className="w-3 h-3 text-[#22c55e]" />
-            <span className="text-[#22c55e]">Live</span>
+          <div className="flex items-center gap-1.5 text-xs mt-0.5 text-[#4a5570]">
+            <Calendar className="w-3 h-3" />
+            <span>Official schedule</span>
           </div>
         )}
       </div>
