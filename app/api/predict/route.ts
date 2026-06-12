@@ -10,6 +10,28 @@ function getGroqClient() {
 // even when the primary one is exhausted.
 const MODEL_CHAIN = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"] as const;
 
+// The model converges on the single most likely scoreline no matter the
+// temperature, so the variety comes from here: each request rolls a match
+// scenario and the AI builds its analysis around it. Weights keep results
+// realistic — the favorite still wins most of the time.
+const SCENARIOS: { weight: number; hint: string }[] = [
+  { weight: 30, hint: "the stronger team wins by a narrow one-goal margin" },
+  { weight: 20, hint: "the stronger team wins comfortably by two or more goals" },
+  { weight: 20, hint: "the match ends in a draw" },
+  { weight: 15, hint: "the underdog pulls off a surprise win" },
+  { weight: 15, hint: "an open, high-scoring match where both teams score" },
+];
+
+function pickScenario(): string {
+  const total = SCENARIOS.reduce((sum, s) => sum + s.weight, 0);
+  let roll = Math.random() * total;
+  for (const scenario of SCENARIOS) {
+    roll -= scenario.weight;
+    if (roll <= 0) return scenario.hint;
+  }
+  return SCENARIOS[0].hint;
+}
+
 function isRecoverableGroqError(error: unknown): boolean {
   if (!(error instanceof Groq.APIError)) return false;
   const status = error.status ?? 0;
@@ -27,7 +49,9 @@ async function createCompletionWithFallback(
       return await groq.chat.completions.create({
         model,
         messages,
-        temperature: 0.7,
+        // High temperature on purpose: re-running the same matchup should
+        // produce visibly different analyses, not a repeated answer.
+        temperature: 0.9,
         max_tokens: 1024,
         response_format: { type: "json_object" },
       });
@@ -77,27 +101,27 @@ async function fetchH2H(teamA: number, teamB: number) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { teamA, teamB, teamAId, teamBId, matchId } = body;
+    const { teamA, teamB, teamAId, teamBId } = body;
 
     if (!teamA || !teamB) {
       return Response.json({ error: "teamA and teamB are required" }, { status: 400 });
     }
 
     const supabase = await createClient();
-    const cacheKey = `predict_${matchId || `${teamA}_${teamB}`}`;
+    // Key the cache by matchup, never by matchId alone: bracket slot ids like
+    // "f-0" are shared by every user, and the same slot holds different teams
+    // depending on each user's bracket.
+    const slug = (name: string) =>
+      name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-");
+    const cacheKey = `predict_${slug(teamA)}_vs_${slug(teamB)}`;
 
+    // The cached prediction is only a fallback for when every Groq model
+    // fails — each request gets a fresh AI analysis so results can vary.
     const { data: cached } = await supabase
       .from("api_cache")
       .select("data, updated_at")
       .eq("cache_key", cacheKey)
       .single();
-
-    if (cached) {
-      const age = Date.now() - new Date(cached.updated_at).getTime();
-      if (age < 24 * 60 * 60 * 1000) {
-        return Response.json({ ...cached.data, cached: true });
-      }
-    }
 
     const [statsA, statsB, h2h] = await Promise.all([
       teamAId ? fetchTeamStats(teamAId) : null,
@@ -120,6 +144,9 @@ Always respond with valid JSON only, no markdown or extra text.`,
         content: `Analyze this FIFA World Cup 2026 match and predict the result.
 
 ${statsContext}
+
+Scenario to explore in this analysis: ${pickScenario()}.
+Build your prediction and reasoning around this scenario, choosing a realistic scoreline that fits it. Only if the scenario is completely implausible for these two teams, pick the nearest realistic alternative. Do not mention the scenario instruction in your reasoning.
 
 Respond with this exact JSON structure:
 {
