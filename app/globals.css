@@ -32,25 +32,34 @@ body {
   font-family: var(--font-sans, system-ui, sans-serif);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* clip (not hidden): hidden turns body into a scroll container, forcing
+     Chrome on Android to composite the whole page as one giant layer —
+     a known source of corrupted GPU tiles on large pages like the bracket. */
   overflow-x: hidden;
+  overflow-x: clip;
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
+/* Custom scrollbars only on desktop: styling ::-webkit-scrollbar makes
+   Chrome demote scrollers from fast composited scrolling, which contributes
+   to GPU glitches on Android. Mobile uses overlay scrollbars anyway. */
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
 
-::-webkit-scrollbar-track {
-  background: #0e1220;
-}
+  ::-webkit-scrollbar-track {
+    background: #0e1220;
+  }
 
-::-webkit-scrollbar-thumb {
-  background: #1e2640;
-  border-radius: 3px;
-}
+  ::-webkit-scrollbar-thumb {
+    background: #1e2640;
+    border-radius: 3px;
+  }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #2d3a5a;
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2d3a5a;
+  }
 }
 
 ::selection {

@@ -68,7 +68,7 @@ export default function HeroSection() {
   return (
     <section
       ref={containerRef}
-      className="relative min-h-[90vh] flex flex-col items-center justify-center text-center px-4 py-24 overflow-hidden stadium-bg"
+      className="relative min-h-[85vh] sm:min-h-[90vh] flex flex-col items-center justify-center text-center px-4 py-16 sm:py-24 overflow-hidden stadium-bg"
     >
       {/* Background */}
       <div ref={bgRef} className="absolute inset-0 pointer-events-none">
@@ -78,47 +78,50 @@ export default function HeroSection() {
       </div>
 
       {/* Badge */}
-      <div className="relative mb-8">
+      <div className="relative mb-6 sm:mb-8">
         <span className="inline-flex items-center rounded-full border border-[#f5c51828] bg-[#f5c51810] overflow-hidden text-sm font-medium">
-          <span className="px-3 py-1.5 bg-[#f5c518] text-[#080b14] font-black tracking-wide text-xs">
+          <span className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-[#f5c518] text-[#080b14] font-black tracking-wide text-[10px] sm:text-xs">
             WC 2026
           </span>
-          <span className="px-3.5 py-1.5 text-[#c8a840] tracking-wide text-xs">
+          <span className="px-3 py-1 sm:px-3.5 sm:py-1.5 text-[#c8a840] tracking-wide text-[10px] sm:text-xs">
             Jun 11 – Jul 19 · USA, Canada &amp; Mexico
           </span>
         </span>
       </div>
 
       {/* Headline */}
-      <div ref={headlineRef} className="relative max-w-4xl mx-auto mb-6">
-        <h1 className="text-5xl sm:text-6xl md:text-7xl font-black leading-[1.05] tracking-tight text-[#e8eaf0]">
-          {"Predict the".split(" ").map((w, i) => (
-            <span key={i} className="word inline-block mr-4">{w}</span>
-          ))}
-          <br />
-          <span className="word inline-block gradient-text">World Cup</span>
-          <span className="word inline-block ml-4 text-[#e8eaf0]">with AI</span>
+      <div ref={headlineRef} className="relative max-w-4xl mx-auto mb-4 sm:mb-6">
+        <h1 className="text-4xl sm:text-6xl md:text-7xl font-black leading-[1.1] sm:leading-[1.05] tracking-tight text-[#e8eaf0] flex flex-col items-center gap-1 sm:gap-2">
+          <span className="flex flex-wrap justify-center gap-x-2 sm:gap-x-4">
+            {"Predict the".split(" ").map((w, i) => (
+              <span key={i} className="word inline-block">{w}</span>
+            ))}
+          </span>
+          <span className="flex flex-wrap justify-center items-center gap-x-2 sm:gap-x-4">
+            <span className="word inline-block gradient-text">World Cup</span>
+            <span className="word inline-block text-[#e8eaf0]">with AI</span>
+          </span>
         </h1>
       </div>
 
       {/* Subtitle */}
-      <p ref={subRef} className="relative max-w-2xl text-lg sm:text-xl text-[#8899bb] leading-relaxed mb-10">
+      <p ref={subRef} className="relative max-w-2xl text-base sm:text-xl text-[#8899bb] leading-relaxed mb-8 sm:mb-10">
         Real team stats, instant AI-powered match analysis, and a full bracket builder.
         Build your predictions and share them with friends.
       </p>
 
       {/* CTA */}
-      <div ref={ctaRef} className="relative flex flex-col sm:flex-row items-center gap-4 mb-16">
+      <div ref={ctaRef} className="relative flex flex-col sm:flex-row items-center justify-center gap-4 mb-10 sm:mb-16 w-full px-4">
         <Link
           href="/auth"
-          className="group flex items-center gap-2 px-8 py-4 text-base font-bold bg-gradient-to-r from-[#f5c518] to-[#c9a000] text-[#080b14] rounded-2xl hover:from-[#ffd54f] hover:to-[#f5c518] transition-all duration-300 active:scale-95 shadow-xl shadow-[#f5c51830] cursor-pointer"
+          className="group flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 text-base font-bold bg-gradient-to-r from-[#f5c518] to-[#c9a000] text-[#080b14] rounded-2xl hover:from-[#ffd54f] hover:to-[#f5c518] transition-all duration-300 active:scale-95 shadow-xl shadow-[#f5c51830] cursor-pointer max-w-xs sm:max-w-none text-center"
         >
           Start predicting
           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
         </Link>
         <Link
           href="/bracket"
-          className="flex items-center gap-2 px-8 py-4 text-base font-semibold text-[#e8eaf0] rounded-2xl border border-[#1e2640] hover:border-[#2d3a5a] hover:bg-[#1e2640] transition-all duration-200 cursor-pointer"
+          className="flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 text-base font-semibold text-[#e8eaf0] rounded-2xl border border-[#1e2640] hover:border-[#2d3a5a] hover:bg-[#1e2640] transition-all duration-200 cursor-pointer max-w-xs sm:max-w-none text-center"
         >
           View bracket
           <ChevronRight className="w-4 h-4" />
@@ -126,7 +129,7 @@ export default function HeroSection() {
       </div>
 
       {/* Stats */}
-      <div ref={statsRef} className="relative flex flex-wrap items-center justify-center gap-8 mb-12">
+      <div ref={statsRef} className="relative flex flex-wrap items-center justify-center gap-6 sm:gap-8 mb-8 sm:mb-12">
         {[
           { value: "48",  label: "Teams" },
           { value: "104", label: "Matches" },
@@ -134,14 +137,14 @@ export default function HeroSection() {
           { value: "AI",  label: "Predictions" },
         ].map((stat) => (
           <div key={stat.label} className="stat-item text-center">
-            <div className="text-3xl font-black text-[#f5c518]">{stat.value}</div>
-            <div className="text-sm text-[#8899bb]">{stat.label}</div>
+            <div className="text-2xl sm:text-3xl font-black text-[#f5c518]">{stat.value}</div>
+            <div className="text-xs sm:text-sm text-[#8899bb]">{stat.label}</div>
           </div>
         ))}
       </div>
 
       {/* Team pills */}
-      <div ref={teamsRef} className="relative flex flex-wrap justify-center gap-2">
+      <div ref={teamsRef} className="relative flex flex-wrap justify-center gap-2 px-2">
         {TEAMS.map((team) => (
           <div
             key={team.name}
