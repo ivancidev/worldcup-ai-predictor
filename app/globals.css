@@ -71,10 +71,19 @@ body {
   border: 1px solid transparent;
 }
 
+/* No backdrop-filter on mobile: fixed elements with backdrop blur trigger a
+   Chromium-on-Android compositing bug that paints uninitialized GPU tiles
+   (visual static/noise) over large scrollable pages like the bracket. */
 .glass {
-  background: rgba(14, 18, 32, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(14, 18, 32, 0.97);
+}
+
+@media (min-width: 768px) {
+  .glass {
+    background: rgba(14, 18, 32, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
 }
 
 .stadium-bg {

@@ -5,11 +5,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { Users, Trophy, Menu, X, LogOut } from "lucide-react";
+import { Users, Trophy, Menu, X, LogOut, LayoutDashboard } from "lucide-react";
 
 const NAV_LINKS = [
-  { href: "/groups",  label: "Group Stage", icon: Users },
-  { href: "/bracket", label: "Bracket",     icon: Trophy },
+  { href: "/dashboard", label: "Dashboard",   icon: LayoutDashboard },
+  { href: "/groups",    label: "Group Stage", icon: Users },
+  { href: "/bracket",   label: "Bracket",     icon: Trophy },
 ];
 
 export default function Navbar() {
@@ -53,7 +54,7 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group cursor-pointer">
+        <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2.5 group cursor-pointer">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#f5c518] to-[#c9a000] flex items-center justify-center group-hover:scale-110 transition-transform">
             <Trophy className="w-4 h-4 text-[#080b14]" strokeWidth={2.5} />
           </div>
