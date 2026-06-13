@@ -110,9 +110,6 @@ export default function BracketClient() {
   } | null>(null);
   const [showHelp, setShowHelp] = useState(false);
 
-  // Capture champion at mount — don't trigger fireworks for already-stored champion
-  const [initialChampion] = useState(() => champion);
-
   // Rehydrate bracket from localStorage after mount (client-only)
   useEffect(() => {
     try {
@@ -142,15 +139,22 @@ export default function BracketClient() {
     setChampion(finalWinner);
   }, [finalWinner, setChampion, isHydrated]);
 
-  // Show fireworks only when champion is set during THIS session
+  // Celebrate whenever a champion is on display: on arriving at a completed
+  // bracket (navigation or reload) and again when a new champion is crowned.
+  // Tracked by id so editing other slots doesn't re-trigger it for the same
+  // champion — only a fresh page visit or a different winner does.
+  const celebratedChampionRef = useRef<Team["id"] | null>(null);
   useEffect(() => {
-    if (champion && champion.id !== initialChampion?.id) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setShowFireworks(true);
-      const t = setTimeout(() => setShowFireworks(false), 9000);
-      return () => clearTimeout(t);
+    if (!champion) {
+      celebratedChampionRef.current = null;
+      return;
     }
-  }, [champion, initialChampion]);
+    if (celebratedChampionRef.current === champion.id) return;
+    celebratedChampionRef.current = champion.id;
+    setShowFireworks(true);
+    const t = setTimeout(() => setShowFireworks(false), 9000);
+    return () => clearTimeout(t);
+  }, [champion]);
 
   // Auto-seed R32 whenever a group completes (or re-completes with new standings)
   useEffect(() => {
@@ -729,7 +733,7 @@ export default function BracketClient() {
             population={3}
             color={["#f5c518", "#ffd54f", "#ffffff", "#60a5fa", "#34d399"]}
           />
-          <div className="relative z-10 flex flex-col items-center gap-4 px-10 py-8 rounded-3xl bg-[#080b14cc] backdrop-blur-md border border-[#f5c51840] text-center shadow-2xl">
+          <div className="relative z-10 flex flex-col items-center gap-4 px-10 py-8 rounded-3xl bg-[#080b14f2] md:bg-[#080b14cc] md:backdrop-blur-md border border-[#f5c51840] text-center shadow-2xl">
             <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#f5c518] to-[#c9a000] flex items-center justify-center animate-float shadow-2xl shadow-[#f5c51840]">
               <Trophy className="w-10 h-10 text-[#080b14]" strokeWidth={1.5} />
             </div>

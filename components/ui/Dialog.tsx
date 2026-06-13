@@ -43,7 +43,8 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
         if (e.target === overlayRef.current) onClose();
       }}
     >
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      {/* Blur only from md up — backdrop-filter glitches Chrome on Android */}
+      <div className="absolute inset-0 bg-black/80 md:bg-black/70 md:backdrop-blur-sm" />
       <div
         className={cn(
           "relative z-10 w-full max-w-lg bg-[#0e1220] border border-[#1e2640] rounded-2xl shadow-2xl",
