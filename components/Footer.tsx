@@ -1,7 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import { Trophy } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/context";
 
 export default function Footer() {
+  const { t } = useTranslation();
+
   return (
     <footer className="border-t border-[#1e2640] bg-[#080b14]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
@@ -15,7 +20,7 @@ export default function Footer() {
           </Link>
 
           <p className="text-xs text-[#2d3a5a] text-center">
-            FIFA World Cup 2026 · USA, Canada &amp; Mexico · June 11 – July 19
+            {t("footer.scheduleDescription")}
           </p>
 
           <a
@@ -24,7 +29,7 @@ export default function Footer() {
             rel="noopener noreferrer"
             className="text-xs text-[#4a5570] hover:text-[#8899bb] transition-colors cursor-pointer"
           >
-            by ivancidev
+            {t("footer.by")} ivancidev
           </a>
         </div>
       </div>
