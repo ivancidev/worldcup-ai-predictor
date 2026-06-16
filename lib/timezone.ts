@@ -62,17 +62,18 @@ export function isMatchOnLocalToday(timestamp: number, tz: string, todayStr: str
   return matchLocalDate === todayStr;
 }
 
-export function formatLocalTime(timestamp: number, tz: string): string {
-  return new Intl.DateTimeFormat("en-US", {
+export function formatLocalTime(timestamp: number, tz: string, locale: string = "en"): string {
+  const isEs = locale === "es";
+  return new Intl.DateTimeFormat(isEs ? "es-ES" : "en-US", {
     timeZone: tz,
     hour: "numeric",
     minute: "2-digit",
-    hour12: true,
+    hour12: !isEs,
   }).format(new Date(timestamp * 1000));
 }
 
-export function formatDayLabel(tz: string): string {
-  return new Intl.DateTimeFormat("en-US", {
+export function formatDayLabel(tz: string, locale: string = "en"): string {
+  return new Intl.DateTimeFormat(locale === "es" ? "es-ES" : "en-US", {
     timeZone: tz,
     weekday: "long",
     month: "long",
@@ -88,13 +89,14 @@ export function getBrowserTimezone(): string {
   }
 }
 
-export function formatMatchDateTime(timestamp: number, tz: string): string {
-  return new Intl.DateTimeFormat("en-US", {
+export function formatMatchDateTime(timestamp: number, tz: string, locale: string = "en"): string {
+  const isEs = locale === "es";
+  return new Intl.DateTimeFormat(isEs ? "es-ES" : "en-US", {
     timeZone: tz,
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-    hour12: true,
+    hour12: !isEs,
   }).format(new Date(timestamp * 1000));
 }

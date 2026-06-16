@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { Team, BracketMatch } from "./types";
+import { Team, BracketMatch } from "../types";
 
 interface GroupResult {
   matchId: string;
