@@ -1,63 +1,62 @@
-import { Bot, BarChart2, Trophy, Share2, Zap, Smartphone } from "lucide-react";
+"use client";
 
-const FEATURES = [
-  {
-    icon: Bot,
-    title: "AI-Powered Predictions",
-    description:
-      "AI analyzes real stats including form, head-to-head records and goals scored to give you expert-level match predictions with detailed reasoning.",
-    accent: "#f5c518",
-  },
-  {
-    icon: BarChart2,
-    title: "Real Live Data",
-    description:
-      "Fixtures, standings and team statistics always up to date with live World Cup 2026 results.",
-    accent: "#3b82f6",
-  },
-  {
-    icon: Trophy,
-    title: "Full Bracket Builder",
-    description:
-      "Build your complete World Cup bracket from Round of 32 all the way to the Final. Let AI auto-fill it or set every score yourself.",
-    accent: "#22c55e",
-  },
-  {
-    icon: Share2,
-    title: "Share Predictions",
-    description:
-      "Generate a shareable link for any prediction. Rich previews on X, WhatsApp, and more. Show the world your picks.",
-    accent: "#a855f7",
-  },
-  {
-    icon: Zap,
-    title: "Lightning Fast",
-    description:
-      "Predictions load instantly thanks to smart caching. Get your full analysis in seconds.",
-    accent: "#f59e0b",
-  },
-  {
-    icon: Smartphone,
-    title: "Mobile First",
-    description:
-      "Perfectly responsive from phone to desktop. Track the tournament from anywhere, anytime.",
-    accent: "#ec4899",
-  },
-];
+import { Bot, BarChart2, Trophy, Share2, Zap, Smartphone } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/context";
 
 export default function FeaturesSection() {
+  const { t } = useTranslation();
+
+  const FEATURES = [
+    {
+      icon: Bot,
+      title: t("features.aiTitle"),
+      description: t("features.aiDesc"),
+      accent: "#f5c518",
+    },
+    {
+      icon: BarChart2,
+      title: t("features.dataTitle"),
+      description: t("features.dataDesc"),
+      accent: "#3b82f6",
+    },
+    {
+      icon: Trophy,
+      title: t("features.bracketTitle"),
+      description: t("features.bracketDesc"),
+      accent: "#22c55e",
+    },
+    {
+      icon: Share2,
+      title: t("features.shareTitle"),
+      description: t("features.shareDesc"),
+      accent: "#a855f7",
+    },
+    {
+      icon: Zap,
+      title: t("features.fastTitle"),
+      description: t("features.fastDesc"),
+      accent: "#f59e0b",
+    },
+    {
+      icon: Smartphone,
+      title: t("features.mobileTitle"),
+      description: t("features.mobileDesc"),
+      accent: "#ec4899",
+    },
+  ];
+
   return (
     <section className="py-24 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1e2640] text-[#8899bb] text-sm mb-4">
-            Everything you need
+            {t("features.titleBadge")}
           </div>
           <h2 className="text-4xl sm:text-5xl font-black text-[#e8eaf0] mb-4">
-            Built for football fans
+            {t("features.mainTitle")}
           </h2>
           <p className="text-[#8899bb] text-lg max-w-2xl mx-auto">
-            From AI match analysis to shareable brackets every feature a real fan needs for World Cup 2026.
+            {t("features.subtitle")}
           </p>
         </div>
 

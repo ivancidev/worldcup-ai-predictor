@@ -37,7 +37,12 @@ export function getConfidenceColor(confidence: number): string {
   return "#ef4444";
 }
 
-export function getConfidenceLabel(confidence: number): string {
+export function getConfidenceLabel(confidence: number, locale: string = "en"): string {
+  if (locale === "es") {
+    if (confidence >= 70) return "Alta";
+    if (confidence >= 50) return "Media";
+    return "Baja";
+  }
   if (confidence >= 70) return "High";
   if (confidence >= 50) return "Medium";
   return "Low";

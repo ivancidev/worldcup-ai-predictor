@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Bot, CheckCircle, ArrowRight, Plus, Share2, Copy, Check } from "lucide-react";
 import { formatMatchDateTime, getBrowserTimezone } from "@/lib/timezone";
 import { DownloadPredictionCard } from "@/components/share/DownloadPredictionCard";
+import { useTranslation, getTranslatedTeamName, Locale } from "@/lib/i18n/context";
 
 interface GroupsClientProps {
   userId: string;
@@ -68,6 +69,7 @@ interface EditModal {
 }
 
 export default function GroupsClient({ userId, savedPredictions, initialGroup }: GroupsClientProps) {
+  const { t, locale } = useTranslation();
   const { setGroupResult, setCompletedGroup } = usePredictionStore();
   const [localPredictions, setLocalPredictions] = useState<Record<string, MatchPrediction>>({});
   const [savedMatches, setSavedMatches] = useState<Set<string>>(new Set());
@@ -265,7 +267,7 @@ export default function GroupsClient({ userId, savedPredictions, initialGroup }:
       const res = await fetch("/api/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamA: homeTeam.name, teamB: awayTeam.name, matchId }),
+        body: JSON.stringify({ teamA: homeTeam.name, teamB: awayTeam.name, matchId, locale }),
       });
       const data: AIPrediction = await res.json();
       setAiModal(prev => ({ ...prev, result: data, loading: false }));
@@ -289,7 +291,7 @@ export default function GroupsClient({ userId, savedPredictions, initialGroup }:
               : "bg-[#1e2640] text-[#8899bb] hover:bg-[#2d3a5a] hover:text-[#e8eaf0]"
           }`}
         >
-          All Groups
+          {t("groups.allGroups")}
         </button>
         {groups.map(([group]) => (
           <button
@@ -301,7 +303,7 @@ export default function GroupsClient({ userId, savedPredictions, initialGroup }:
                 : "bg-[#1e2640] text-[#8899bb] hover:bg-[#2d3a5a] hover:text-[#e8eaf0]"
             }`}
           >
-            Group {group}
+            {t("groups.groupLabel", { group })}
           </button>
         ))}
       </div>
@@ -321,6 +323,7 @@ export default function GroupsClient({ userId, savedPredictions, initialGroup }:
             userTz={userTz}
             mounted={mounted}
             onShare={handleOpenShareModal}
+            locale={locale}
           />
         ))}
       </div>
@@ -330,7 +333,10 @@ export default function GroupsClient({ userId, savedPredictions, initialGroup }:
         <Dialog
           open={true}
           onClose={() => setEditModal(null)}
-          title={`${editModal.home.name} vs ${editModal.away.name}`}
+          title={t("groups.editTitle", {
+            home: getTranslatedTeamName(editModal.home.name, locale),
+            away: getTranslatedTeamName(editModal.away.name, locale),
+          })}
           className="max-w-sm"
         >
           <div className="space-y-5">
@@ -338,12 +344,12 @@ export default function GroupsClient({ userId, savedPredictions, initialGroup }:
               <div className="flex flex-col items-center gap-2 flex-1">
                 <FlagImage
                   src={getFlagUrl(editModal.home.flagCode, 40)}
-                  alt={editModal.home.name}
+                  alt={getTranslatedTeamName(editModal.home.name, locale)}
                   cdnSize={40}
                   className="w-12 h-8 object-cover rounded-md"
                 />
                 <p className="text-xs font-bold text-[#e8eaf0] text-center leading-tight max-w-[80px] truncate">
-                  {editModal.home.name}
+                  {getTranslatedTeamName(editModal.home.name, locale)}
                 </p>
                 <input
                   type="text"
@@ -367,12 +373,12 @@ export default function GroupsClient({ userId, savedPredictions, initialGroup }:
               <div className="flex flex-col items-center gap-2 flex-1">
                 <FlagImage
                   src={getFlagUrl(editModal.away.flagCode, 40)}
-                  alt={editModal.away.name}
+                  alt={getTranslatedTeamName(editModal.away.name, locale)}
                   cdnSize={40}
                   className="w-12 h-8 object-cover rounded-md"
                 />
                 <p className="text-xs font-bold text-[#e8eaf0] text-center leading-tight max-w-[80px] truncate">
-                  {editModal.away.name}
+                  {getTranslatedTeamName(editModal.away.name, locale)}
                 </p>
                 <input
                   type="text"
@@ -393,17 +399,25 @@ export default function GroupsClient({ userId, savedPredictions, initialGroup }:
 
             <div className="text-center text-sm h-5">
               {editModal.homeScore > editModal.awayScore ? (
-                <span className="text-[#22c55e] font-semibold">{editModal.home.name} wins</span>
+                <span className="text-[#22c55e] font-semibold">
+                  {locale === "es"
+                    ? `Gana ${getTranslatedTeamName(editModal.home.name, locale)}`
+                    : `${editModal.home.name} wins`}
+                </span>
               ) : editModal.homeScore < editModal.awayScore ? (
-                <span className="text-[#22c55e] font-semibold">{editModal.away.name} wins</span>
+                <span className="text-[#22c55e] font-semibold">
+                  {locale === "es"
+                    ? `Gana ${getTranslatedTeamName(editModal.away.name, locale)}`
+                    : `${editModal.away.name} wins`}
+                </span>
               ) : (
-                <span className="text-[#8899bb]">Draw</span>
+                <span className="text-[#8899bb]">{t("groups.drawLabel")}</span>
               )}
             </div>
 
             <div className="flex gap-3">
               <Button variant="secondary" className="flex-1" onClick={() => setEditModal(null)}>
-                Cancel
+                {t("groups.cancel")}
               </Button>
               <Button
                 variant="gold"
@@ -415,7 +429,7 @@ export default function GroupsClient({ userId, savedPredictions, initialGroup }:
                   setEditModal(null);
                 }}
               >
-                <CheckCircle className="w-4 h-4" /> Save
+                <CheckCircle className="w-4 h-4" /> {t("groups.save")}
               </Button>
             </div>
           </div>
@@ -426,19 +440,24 @@ export default function GroupsClient({ userId, savedPredictions, initialGroup }:
       <Dialog
         open={aiModal.open}
         onClose={() => setAiModal(p => ({ ...p, open: false }))}
-        title={`AI Prediction: ${aiModal.homeTeam?.name ?? ""} vs ${aiModal.awayTeam?.name ?? ""}`}
+        title={t("groups.aiModalTitle", {
+          home: getTranslatedTeamName(aiModal.homeTeam?.name ?? "", locale),
+          away: getTranslatedTeamName(aiModal.awayTeam?.name ?? "", locale),
+        })}
         className="max-w-xl"
       >
         {aiModal.loading ? (
           <div className="flex flex-col items-center gap-4 py-8">
             <div className="w-12 h-12 rounded-full border-2 border-[#f5c518] border-t-transparent animate-spin" />
-            <p className="text-[#8899bb]">Analyzing match data...</p>
+            <p className="text-[#8899bb]">{t("groups.aiAnalyzing")}</p>
           </div>
         ) : aiModal.result ? (
           <div className="space-y-5">
             <div className="flex items-center justify-between p-4 rounded-xl bg-[#141928] border border-[#1e2640]">
               <div className="text-left">
-                <div className="text-sm text-[#8899bb] mb-1">{aiModal.homeTeam?.name}</div>
+                <div className="text-sm text-[#8899bb] mb-1">
+                  {getTranslatedTeamName(aiModal.homeTeam?.name ?? "", locale)}
+                </div>
                 <div className="text-4xl font-black text-[#f5c518]">{aiModal.result.scoreA}</div>
               </div>
               <div className="text-center">
@@ -447,19 +466,21 @@ export default function GroupsClient({ userId, savedPredictions, initialGroup }:
                   variant={aiModal.result.confidence >= 70 ? "green" : aiModal.result.confidence >= 50 ? "gold" : "red"}
                   className="mt-1"
                 >
-                  {aiModal.result.confidence}% conf.
+                  {aiModal.result.confidence}% {locale === "es" ? "conf." : "conf."}
                 </Badge>
               </div>
               <div className="text-right">
-                <div className="text-sm text-[#8899bb] mb-1">{aiModal.awayTeam?.name}</div>
+                <div className="text-sm text-[#8899bb] mb-1">
+                  {getTranslatedTeamName(aiModal.awayTeam?.name ?? "", locale)}
+                </div>
                 <div className="text-4xl font-black text-[#f5c518]">{aiModal.result.scoreB}</div>
               </div>
             </div>
             <div className="p-4 rounded-xl bg-[#141928] border border-[#1e2640]">
               <div className="flex items-center gap-2 mb-3">
                 <Bot className="w-4 h-4 text-[#f5c518]" />
-                <span className="text-sm font-semibold text-[#f5c518]">AI Analysis</span>
-                <Badge variant="gold">AI Prediction</Badge>
+                <span className="text-sm font-semibold text-[#f5c518]">{t("groups.aiAnalysisLabel")}</span>
+                <Badge variant="gold">{t("groups.aiPredictionLabel")}</Badge>
               </div>
               <p className="text-[#8899bb] text-sm leading-relaxed whitespace-pre-wrap">{aiModal.result.reasoning}</p>
             </div>
@@ -482,15 +503,15 @@ export default function GroupsClient({ userId, savedPredictions, initialGroup }:
                   setAiModal(p => ({ ...p, open: false }));
                 }}
               >
-                Use this prediction
+                {t("groups.usePredictionBtn")}
               </Button>
               <Button variant="secondary" onClick={() => setAiModal(p => ({ ...p, open: false }))}>
-                Dismiss
+                {t("groups.dismiss")}
               </Button>
             </div>
           </div>
         ) : (
-          <p className="text-[#ef4444] text-sm">Failed to generate prediction. Try again.</p>
+          <p className="text-[#ef4444] text-sm">{t("groups.failedAi")}</p>
         )}
       </Dialog>
 
@@ -498,18 +519,21 @@ export default function GroupsClient({ userId, savedPredictions, initialGroup }:
       <Dialog
         open={shareModal.open}
         onClose={() => setShareModal(p => ({ ...p, open: false }))}
-        title={`Share Prediction: ${shareModal.homeTeam?.name ?? ""} vs ${shareModal.awayTeam?.name ?? ""}`}
+        title={t("groups.shareModalTitle", {
+          home: getTranslatedTeamName(shareModal.homeTeam?.name ?? "", locale),
+          away: getTranslatedTeamName(shareModal.awayTeam?.name ?? "", locale),
+        })}
         className="max-w-md"
       >
         {shareModal.loading ? (
           <div className="flex flex-col items-center gap-4 py-8">
             <div className="w-12 h-12 rounded-full border-2 border-[#f5c518] border-t-transparent animate-spin" />
-            <p className="text-[#8899bb]">Generating share link...</p>
+            <p className="text-[#8899bb]">{locale === "es" ? "Generando enlace para compartir..." : "Generating share link..."}</p>
           </div>
         ) : shareModal.shareSlug ? (
           <div className="space-y-5">
             <p className="text-[#8899bb] text-sm">
-              Your prediction is saved. Share the link or download a custom image card for social media:
+              {t("groups.shareDesc")}
             </p>
             <div className="flex gap-2">
               <input
@@ -522,26 +546,34 @@ export default function GroupsClient({ userId, savedPredictions, initialGroup }:
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1e2640] border border-[#2d3a5a] text-[#8899bb] hover:text-[#e8eaf0] text-sm font-medium transition-colors cursor-pointer"
               >
                 {shareCopied ? <Check className="w-4 h-4 text-[#22c55e]" /> : <Copy className="w-4 h-4" />}
-                {shareCopied ? "Copied!" : "Copy"}
+                {shareCopied ? t("groups.copied") : t("groups.copy")}
               </button>
             </div>
 
             <div className="flex gap-2">
               <a
-                href={`https://twitter.com/intent/tweet?text=My+prediction+for+${encodeURIComponent(shareModal.homeTeam?.name ?? "")}+vs+${encodeURIComponent(shareModal.awayTeam?.name ?? "")}+${encodeURIComponent(`${window.location.origin}/share/${shareModal.shareSlug}`)}`}
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                  locale === "es"
+                    ? `Mi predicción para ${getTranslatedTeamName(shareModal.homeTeam?.name ?? "", locale)} vs ${getTranslatedTeamName(shareModal.awayTeam?.name ?? "", locale)} ${window.location.origin}/share/${shareModal.shareSlug}`
+                    : `My prediction for ${shareModal.homeTeam?.name} vs ${shareModal.awayTeam?.name} ${window.location.origin}/share/${shareModal.shareSlug}`
+                )}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-[#1da1f220] border border-[#1da1f230] text-[#1da1f2] text-sm font-medium hover:bg-[#1da1f230] transition-colors cursor-pointer"
               >
-                <span className="font-black text-sm">𝕏</span> Twitter
+                <span className="font-black text-sm">𝕏</span> {t("groups.twitter")}
               </a>
               <a
-                href={`https://wa.me/?text=${encodeURIComponent(`My prediction: ${shareModal.homeTeam?.name} vs ${shareModal.awayTeam?.name} ${window.location.origin}/share/${shareModal.shareSlug}`)}`}
+                href={`https://wa.me/?text=${encodeURIComponent(
+                  locale === "es"
+                    ? `Mi predicción: ${getTranslatedTeamName(shareModal.homeTeam?.name ?? "", locale)} vs ${getTranslatedTeamName(shareModal.awayTeam?.name ?? "", locale)} ${window.location.origin}/share/${shareModal.shareSlug}`
+                    : `My prediction: ${shareModal.homeTeam?.name} vs ${shareModal.awayTeam?.name} ${window.location.origin}/share/${shareModal.shareSlug}`
+                )}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-[#25d36620] border border-[#25d36630] text-[#25d366] text-sm font-medium hover:bg-[#25d36630] transition-colors cursor-pointer"
               >
-                <Share2 className="w-4 h-4" /> WhatsApp
+                <Share2 className="w-4 h-4" /> {t("groups.whatsapp")}
               </a>
             </div>
 
@@ -551,11 +583,15 @@ export default function GroupsClient({ userId, savedPredictions, initialGroup }:
                 if (!pred) return null;
                 return (
                   <DownloadPredictionCard
-                    teamA={shareModal.homeTeam?.name ?? ""}
-                    teamB={shareModal.awayTeam?.name ?? ""}
+                    teamA={getTranslatedTeamName(shareModal.homeTeam?.name ?? "", locale)}
+                    teamB={getTranslatedTeamName(shareModal.awayTeam?.name ?? "", locale)}
                     scoreA={pred.score_a}
                     scoreB={pred.score_b}
-                    winner={pred.winner}
+                    winner={
+                      pred.winner === "Draw"
+                        ? "Draw"
+                        : getTranslatedTeamName(pred.winner, locale)
+                    }
                     confidence={pred.confidence || 60}
                   />
                 );
@@ -563,7 +599,7 @@ export default function GroupsClient({ userId, savedPredictions, initialGroup }:
             </div>
           </div>
         ) : (
-          <p className="text-[#ef4444] text-sm">Failed to generate share link. Try again.</p>
+          <p className="text-[#ef4444] text-sm">{t("groups.failedShare")}</p>
         )}
       </Dialog>
     </div>
@@ -571,7 +607,7 @@ export default function GroupsClient({ userId, savedPredictions, initialGroup }:
 }
 
 function GroupCard({
-  group, teams, localPredictions, savedMatches, savingMatch, onOpenModal, onAIPredict, realFixtures, userTz, mounted, onShare,
+  group, teams, localPredictions, savedMatches, savingMatch, onOpenModal, onAIPredict, realFixtures, userTz, mounted, onShare, locale,
 }: {
   group: string;
   teams: Team[];
@@ -584,7 +620,10 @@ function GroupCard({
   userTz: string;
   mounted: boolean;
   onShare: (matchId: string, home: Team, away: Team) => void;
+  locale: Locale;
 }) {
+  const { t } = useTranslation();
+
   const matches = useMemo(() => {
     const m: Array<{ id: string; home: Team; away: Team }> = [];
     for (let i = 0; i < teams.length; i++)
@@ -615,16 +654,16 @@ function GroupCard({
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2640] bg-[#141928]">
         <div className="flex items-center gap-3">
-          <h3 className="font-black text-[#e8eaf0] text-base">Group {group}</h3>
+          <h3 className="font-black text-[#e8eaf0] text-base">{t("groups.groupLabel", { group })}</h3>
           {isComplete && (
             <span className="flex items-center gap-1 text-[9px] font-bold text-[#22c55e] bg-[#22c55e15] border border-[#22c55e30] px-2 py-0.5 rounded-full uppercase tracking-wider">
-              <CheckCircle className="w-2.5 h-2.5" /> Complete
+              <CheckCircle className="w-2.5 h-2.5" /> {t("groups.complete")}
             </span>
           )}
         </div>
         <div className="flex gap-2">
           {teams.map(t => (
-            <FlagImage key={t.id} src={getFlagUrl(t.flagCode, 20)} alt={t.name} cdnSize={20} className="w-6 h-4 object-cover rounded-sm" title={t.name} />
+            <FlagImage key={t.id} src={getFlagUrl(t.flagCode, 20)} alt={getTranslatedTeamName(t.name, locale)} cdnSize={20} className="w-6 h-4 object-cover rounded-sm" title={getTranslatedTeamName(t.name, locale)} />
           ))}
         </div>
       </div>
@@ -632,11 +671,11 @@ function GroupCard({
       {/* Live standings */}
       <div className="px-5 py-3 border-b border-[#1e2640]">
         <div className="grid grid-cols-[1fr_28px_28px_28px_32px] gap-x-2 text-xs text-[#4a5570] mb-2 pr-1">
-          <span>Team</span>
-          <span className="text-center">P</span>
-          <span className="text-center">W</span>
-          <span className="text-center">D</span>
-          <span className="text-center">Pts</span>
+          <span>{t("groups.thTeam")}</span>
+          <span className="text-center">{t("groups.thP")}</span>
+          <span className="text-center">{t("groups.thW")}</span>
+          <span className="text-center">{t("groups.thD")}</span>
+          <span className="text-center">{t("groups.thPts")}</span>
         </div>
         {standings.map((s, idx) => (
           <div
@@ -645,9 +684,9 @@ function GroupCard({
           >
             <div className="flex items-center gap-2 min-w-0">
               <span className={`w-3 text-xs shrink-0 font-bold ${idx < 2 ? "text-[#f5c518]" : "text-[#4a5570]"}`}>{idx + 1}</span>
-              <FlagImage src={getFlagUrl(s.team.flagCode, 20)} alt={s.team.name} cdnSize={20} className="w-6 h-4 object-cover rounded-sm shrink-0" />
-              <span className="text-[#e8eaf0] truncate text-xs font-medium">{s.team.name}</span>
-              {idx < 2 && <ArrowRight className="w-3 h-3 text-[#f5c51880] shrink-0" aria-label="Advances" />}
+              <FlagImage src={getFlagUrl(s.team.flagCode, 20)} alt={getTranslatedTeamName(s.team.name, locale)} cdnSize={20} className="w-6 h-4 object-cover rounded-sm shrink-0" />
+              <span className="text-[#e8eaf0] truncate text-xs font-medium">{getTranslatedTeamName(s.team.name, locale)}</span>
+              {idx < 2 && <ArrowRight className="w-3 h-3 text-[#f5c51880] shrink-0" aria-label={locale === "es" ? "Avanza" : "Advances"} />}
             </div>
             <span className="text-center text-[#8899bb] text-xs">{s.P}</span>
             <span className="text-center text-[#8899bb] text-xs">{s.W}</span>
@@ -666,7 +705,7 @@ function GroupCard({
 
           const f = findRealFixture(match.home.name, match.away.name, realFixtures);
           const live = f ? ["1H", "2H", "HT", "ET", "PEN"].includes(f.status.short) : false;
-          const matchTimeStr = mounted && f ? formatMatchDateTime(f.timestamp, userTz) : "";
+          const matchTimeStr = mounted && f ? formatMatchDateTime(f.timestamp, userTz, locale) : "";
 
           return (
             <div key={match.id} className="px-4 py-3">
@@ -677,13 +716,13 @@ function GroupCard({
                 </span>
                 {live && (
                   <span className="flex items-center gap-1 text-[8px] font-black text-[#ef4444] bg-[#ef444410] border border-[#ef444425] px-1.5 py-0.5 rounded-md uppercase tracking-wider animate-pulse">
-                    ● Live
+                    {locale === "es" ? "● En vivo" : "● Live"}
                   </span>
                 )}
               </div>
 
               <div className="flex items-center gap-2 mb-2.5">
-                <TeamPill team={match.home} />
+                <TeamPill team={match.home} locale={locale} />
                 <div className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5 rounded-xl bg-[#141928] border border-[#1e2640] min-w-[72px] justify-center">
                   <span className={`text-sm font-black w-4 text-center ${pred ? "text-[#f5c518]" : "text-[#2d3a5a]"}`}>
                     {pred ? pred.homeScore : "–"}
@@ -693,7 +732,7 @@ function GroupCard({
                     {pred ? pred.awayScore : "–"}
                   </span>
                 </div>
-                <TeamPill team={match.away} align="right" />
+                <TeamPill team={match.away} align="right" locale={locale} />
               </div>
 
               <div className="flex gap-2">
@@ -714,23 +753,23 @@ function GroupCard({
                       <span className="font-black tracking-wider">
                         {pred?.homeScore ?? 0} – {pred?.awayScore ?? 0}
                       </span>
-                      <span className="opacity-60">· Edit</span>
+                      <span className="opacity-60">· {locale === "es" ? "Editar" : "Edit"}</span>
                     </>
                   ) : (
-                    <><Plus className="w-3 h-3" /> Set Score</>
+                    <><Plus className="w-3 h-3" /> {t("groups.setScore")}</>
                   )}
                 </button>
                 <button
                   onClick={() => onAIPredict(match.id, match.home, match.away)}
                   className="flex-grow flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold bg-[#f5c51810] border border-[#f5c51820] text-[#f5c518] hover:bg-[#f5c51820] transition-all cursor-pointer"
                 >
-                  <Bot className="w-3 h-3" /> AI Predict
+                  <Bot className="w-3 h-3" /> {t("groups.aiPredict")}
                 </button>
                 {isSaved && (
                   <button
                     onClick={() => onShare(match.id, match.home, match.away)}
                     className="flex items-center justify-center p-1.5 rounded-lg bg-[#f5c51815] border border-[#f5c51830] text-[#f5c518] hover:bg-[#f5c51825] transition-all cursor-pointer shrink-0"
-                    title="Share / Export Prediction"
+                    title={t("groups.shareExport")}
                   >
                     <Share2 className="w-4 h-4" />
                   </button>
@@ -744,11 +783,12 @@ function GroupCard({
   );
 }
 
-function TeamPill({ team, align = "left" }: { team: Team; align?: "left" | "right" }) {
+function TeamPill({ team, align = "left", locale = "en" }: { team: Team; align?: "left" | "right"; locale?: Locale }) {
   return (
     <div className={`flex items-center gap-1.5 flex-1 min-w-0 ${align === "right" ? "justify-end" : ""}`}>
-      <FlagImage src={getFlagUrl(team.flagCode, 20)} alt={team.name} cdnSize={20} className="w-5 h-3.5 object-cover rounded-sm shrink-0" />
-      <span className="text-xs text-[#e8eaf0] truncate font-medium">{team.name}</span>
+      {align === "left" && <FlagImage src={getFlagUrl(team.flagCode, 20)} alt={getTranslatedTeamName(team.name, locale)} cdnSize={20} className="w-5 h-3.5 object-cover rounded-sm shrink-0" />}
+      <span className="text-xs text-[#e8eaf0] truncate font-medium">{getTranslatedTeamName(team.name, locale)}</span>
+      {align === "right" && <FlagImage src={getFlagUrl(team.flagCode, 20)} alt={getTranslatedTeamName(team.name, locale)} cdnSize={20} className="w-5 h-3.5 object-cover rounded-sm shrink-0" />}
     </div>
   );
 }

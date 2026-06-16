@@ -5,13 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { Users, Trophy, Menu, X, LogOut, LayoutDashboard } from "lucide-react";
-
-const NAV_LINKS = [
-  { href: "/dashboard", label: "Dashboard",   icon: LayoutDashboard },
-  { href: "/groups",    label: "Group Stage", icon: Users },
-  { href: "/bracket",   label: "Bracket",     icon: Trophy },
-];
+import { useTranslation } from "@/lib/i18n/context";
+import { Users, Trophy, Menu, X, LogOut, LayoutDashboard, Globe } from "lucide-react";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -19,6 +14,13 @@ export default function Navbar() {
   const [user, setUser] = useState<{ email?: string; user_metadata?: { username?: string } } | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { t, locale, setLocale } = useTranslation();
+
+  const NAV_LINKS = [
+    { href: "/dashboard", label: t("navbar.dashboard"),   icon: LayoutDashboard },
+    { href: "/groups",    label: t("navbar.groupStage"), icon: Users },
+    { href: "/bracket",   label: t("navbar.bracket"),     icon: Trophy },
+  ];
 
   useEffect(() => {
     const supabase = createClient();
@@ -43,6 +45,17 @@ export default function Navbar() {
 
   const isPublicPage = pathname === "/" || pathname === "/auth";
 
+  const renderLanguageSelector = () => (
+    <button
+      onClick={() => setLocale(locale === "en" ? "es" : "en")}
+      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-[#141928] border border-[#1e2640] text-[#f5c518] hover:border-[#f5c51840] hover:bg-[#1e2640] transition-all cursor-pointer uppercase shrink-0"
+      title={locale === "en" ? "Cambiar a Español" : "Switch to English"}
+    >
+      <Globe className="w-3.5 h-3.5" />
+      <span>{locale}</span>
+    </button>
+  );
+
   return (
     <header
       className={cn(
@@ -62,7 +75,7 @@ export default function Navbar() {
             WC<span className="text-[#f5c518]">2026</span>
           </span>
         </Link>
-
+ 
         {/* Desktop Nav — authenticated only */}
         {user && (
           <nav className="hidden md:flex items-center gap-1">
@@ -83,12 +96,13 @@ export default function Navbar() {
             ))}
           </nav>
         )}
-
+ 
         {/* Auth — desktop */}
         <div className="hidden md:flex items-center gap-3">
+          {renderLanguageSelector()}
           {user ? (
             <>
-              <span className="text-sm text-[#8899bb]">
+              <span className="text-sm text-[#8899bb] max-w-[120px] truncate">
                 {user.user_metadata?.username || user.email?.split("@")[0]}
               </span>
               <button
@@ -96,31 +110,34 @@ export default function Navbar() {
                 className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-[#8899bb] hover:text-[#e8eaf0] hover:bg-[#1e2640] rounded-lg transition-all duration-200 cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                Sign out
+                {t("navbar.signOut")}
               </button>
             </>
           ) : (
             <>
               <Link href="/auth" className="px-4 py-2 text-sm font-medium text-[#8899bb] hover:text-[#e8eaf0] transition-colors cursor-pointer">
-                Sign in
+                {t("navbar.signIn")}
               </Link>
               <Link
                 href="/auth"
                 className="px-4 py-2 text-sm font-semibold bg-[#f5c518] text-[#080b14] rounded-xl hover:bg-[#ffd54f] transition-all duration-200 active:scale-95 cursor-pointer"
               >
-                Get started
+                {t("navbar.getStarted")}
               </Link>
             </>
           )}
         </div>
-
-        {/* Mobile menu button */}
-        <button
-          className="md:hidden p-2 text-[#8899bb] hover:text-[#e8eaf0] hover:bg-[#1e2640] rounded-lg transition-all cursor-pointer"
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+ 
+        {/* Mobile buttons */}
+        <div className="md:hidden flex items-center gap-2">
+          {renderLanguageSelector()}
+          <button
+            className="p-2 text-[#8899bb] hover:text-[#e8eaf0] hover:bg-[#1e2640] rounded-lg transition-all cursor-pointer"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile menu */}
@@ -149,7 +166,7 @@ export default function Navbar() {
                 className="w-full flex items-center gap-2 px-4 py-3 rounded-xl text-sm text-[#8899bb] hover:text-[#e8eaf0] hover:bg-[#1e2640] transition-all cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
-                Sign out
+                {t("navbar.signOut")}
               </button>
             ) : (
               <Link
@@ -157,7 +174,7 @@ export default function Navbar() {
                 onClick={() => setMenuOpen(false)}
                 className="flex items-center justify-center px-4 py-3 rounded-xl text-sm font-semibold bg-[#f5c518] text-[#080b14] cursor-pointer"
               >
-                Get started
+                {t("navbar.getStarted")}
               </Link>
             )}
           </div>

@@ -26,6 +26,7 @@ import {
   CalendarClock,
 } from "lucide-react";
 import { DownloadPredictionCard } from "@/components/share/DownloadPredictionCard";
+import { useTranslation, getTranslatedTeamName } from "@/lib/i18n/context";
 
 interface PredictPageProps {
   params: Promise<{ matchId: string }>;
@@ -34,21 +35,22 @@ interface PredictPageProps {
 export default function PredictPage({ params }: PredictPageProps) {
   const { matchId } = use(params);
   const parsed = parseGroupMatchId(matchId);
+  const { t } = useTranslation();
 
   if (!parsed) {
     return (
       <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-2xl font-bold text-[#e8eaf0] mb-2">Match not found</p>
+          <p className="text-2xl font-bold text-[#e8eaf0] mb-2">{t("predict.matchNotFound")}</p>
           <p className="text-[#8899bb] mb-6">
-            We couldn&apos;t find this match in the tournament.
+            {t("predict.matchNotFoundSub")}
           </p>
           <Link
             href="/groups"
             className="inline-flex items-center gap-2 px-6 py-3 font-bold bg-gradient-to-r from-[#f5c518] to-[#c9a000] text-[#080b14] rounded-xl hover:from-[#ffd54f] hover:to-[#f5c518] transition-all"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Groups
+            {t("predict.backToGroupsBtn")}
           </Link>
         </div>
       </div>
@@ -66,6 +68,7 @@ function MatchPredict({
   parsed: NonNullable<ReturnType<typeof parseGroupMatchId>>;
 }) {
   const { group, home, away } = parsed;
+  const { t, locale } = useTranslation();
 
   const [scoreA, setScoreA] = useState("");
   const [scoreB, setScoreB] = useState("");
@@ -143,7 +146,7 @@ function MatchPredict({
       const res = await fetch("/api/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamA: home.name, teamB: away.name, matchId }),
+        body: JSON.stringify({ teamA: home.name, teamB: away.name, matchId, locale }),
       });
       const data: AIPrediction = await res.json();
       setAiPred(data);
@@ -155,7 +158,7 @@ function MatchPredict({
       /* ignore */
     }
     setAiLoading(false);
-  }, [home.name, away.name, matchId]);
+  }, [home.name, away.name, matchId, locale]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -226,10 +229,14 @@ function MatchPredict({
 
   const live = fixture ? isLive(fixture.status) : false;
   const finished = fixture ? isFinished(fixture.status) : false;
-  const kickoff = fixture ? formatMatchDateTime(fixture.timestamp, tz) : null;
+  const kickoff = fixture ? formatMatchDateTime(fixture.timestamp, tz, locale) : null;
   const a = parseInt(scoreA || "0", 10);
   const b = parseInt(scoreB || "0", 10);
   const winnerName = a > b ? home.name : a < b ? away.name : "Draw";
+
+  const homeNameTr = getTranslatedTeamName(home.name, locale);
+  const awayNameTr = getTranslatedTeamName(away.name, locale);
+  const winnerNameTr = winnerName === "Draw" ? t("predict.draw") : getTranslatedTeamName(winnerName, locale);
 
   return (
     <div className="min-h-[calc(100vh-64px)] px-4 py-6 sm:py-8">
@@ -239,24 +246,24 @@ function MatchPredict({
           className="inline-flex items-center gap-1.5 text-[#8899bb] hover:text-[#e8eaf0] text-sm mb-5 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to dashboard
+          {t("predict.backToDashboardBtn")}
         </Link>
 
         {/* ── Match header ── */}
         <div className="rounded-2xl bg-[#0e1220] border border-[#1e2640] overflow-hidden mb-5">
           <div className="flex items-center justify-between gap-2 px-3 sm:px-5 py-3 border-b border-[#1e2640] bg-[#141928]">
-            <Badge variant="gold">Group {group}</Badge>
+            <Badge variant="gold">{t("groups.groupLabel", { group })}</Badge>
             <span className="flex items-center gap-1.5 text-[11px] sm:text-xs text-[#8899bb] whitespace-nowrap">
               {live ? (
                 <span className="flex items-center gap-1 text-[#22c55e] font-bold uppercase tracking-wider">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse" />
-                  In play
+                  {t("predict.inPlay")}
                 </span>
               ) : (
                 <>
                   <CalendarClock className="w-3.5 h-3.5 shrink-0" />
-                  {kickoff ?? "Schedule TBD"}
-                  {finished && <span className="text-[#4a5570]">· Played</span>}
+                  {kickoff ?? t("predict.scheduleTbd")}
+                  {finished && <span className="text-[#4a5570]">· {t("predict.played")}</span>}
                 </>
               )}
             </span>
@@ -267,12 +274,12 @@ function MatchPredict({
             <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
               <FlagImage
                 src={getFlagUrl(home.flagCode, 80)}
-                alt={home.name}
+                alt={homeNameTr}
                 cdnSize={80}
                 className="w-12 h-8 sm:w-16 sm:h-11 object-cover rounded-md shadow-lg"
               />
               <span className="text-xs sm:text-sm font-bold text-[#e8eaf0] text-center leading-tight break-words">
-                {home.name}
+                {homeNameTr}
               </span>
             </div>
 
@@ -287,12 +294,12 @@ function MatchPredict({
             <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
               <FlagImage
                 src={getFlagUrl(away.flagCode, 80)}
-                alt={away.name}
+                alt={awayNameTr}
                 cdnSize={80}
                 className="w-12 h-8 sm:w-16 sm:h-11 object-cover rounded-md shadow-lg"
               />
               <span className="text-xs sm:text-sm font-bold text-[#e8eaf0] text-center leading-tight break-words">
-                {away.name}
+                {awayNameTr}
               </span>
             </div>
           </div>
@@ -301,9 +308,9 @@ function MatchPredict({
             <div className="flex items-center justify-center gap-2 px-3 sm:px-5 py-3 border-t border-[#1e2640] bg-[#0c101d]">
               <Trophy className="w-3.5 h-3.5 text-[#f5c518]" />
               <span className="text-xs text-[#8899bb]">
-                Your pick:{" "}
+                {t("predict.yourPick")}{" "}
                 <span className="font-bold text-[#f5c518]">
-                  {winnerName === "Draw" ? "Draw" : winnerName}
+                  {winnerNameTr}
                 </span>
               </span>
             </div>
@@ -320,7 +327,7 @@ function MatchPredict({
             className="flex-1"
           >
             <Bot className="w-4 h-4" />
-            AI Predict
+            {t("predict.aiBtn")}
           </Button>
           <Button
             variant="gold"
@@ -330,7 +337,7 @@ function MatchPredict({
             className="flex-1"
           >
             {saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-            {saved ? "Saved" : "Save prediction"}
+            {saved ? t("predict.savedBtn") : t("predict.saveBtn")}
           </Button>
         </div>
 
@@ -339,7 +346,7 @@ function MatchPredict({
           <div className="p-4 sm:p-5 rounded-2xl bg-[#0e1220] border border-[#1e2640] mb-5">
             <div className="flex items-center justify-between mb-3">
               <span className="flex items-center gap-2 text-sm font-semibold text-[#f5c518]">
-                <Bot className="w-4 h-4" /> AI Analysis
+                <Bot className="w-4 h-4" /> {t("predict.aiAnalysis")}
               </span>
               <Badge
                 variant={
@@ -350,7 +357,7 @@ function MatchPredict({
                       : "red"
                 }
               >
-                {aiPred.confidence}% {getConfidenceLabel(aiPred.confidence)}
+                {aiPred.confidence}% {getConfidenceLabel(aiPred.confidence, locale)}
               </Badge>
             </div>
             <p className="text-[#8899bb] text-sm leading-relaxed whitespace-pre-wrap">
@@ -369,14 +376,14 @@ function MatchPredict({
             className="w-full border border-[#1e2640]"
           >
             <Share2 className="w-4 h-4" />
-            Share this prediction
+            {t("predict.shareBtn")}
           </Button>
         )}
 
         {shareSlug && (
           <div className="p-4 rounded-2xl bg-[#0e1220] border border-[#22c55e40]">
             <p className="text-sm font-semibold text-[#22c55e] mb-3 flex items-center gap-2">
-              <Check className="w-4 h-4" /> Ready to share
+              <Check className="w-4 h-4" /> {t("predict.readyToShare")}
             </p>
             <div className="flex gap-2">
               <input
@@ -393,37 +400,41 @@ function MatchPredict({
                 ) : (
                   <Copy className="w-4 h-4" />
                 )}
-                {copied ? "Copied!" : "Copy"}
+                {copied ? t("predict.copied") : t("predict.copy")}
               </button>
             </div>
             <div className="flex gap-2 mt-3">
               <a
                 href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-                  `My AI prediction for ${home.name} vs ${away.name} at WC2026: ${a}-${b} ${shareUrl}`
+                  locale === "es"
+                    ? `Mi predicción para ${homeNameTr} vs ${awayNameTr} en el Mundial 2026: ${a}-${b} ${shareUrl}`
+                    : `My AI prediction for ${home.name} vs ${away.name} at WC2026: ${a}-${b} ${shareUrl}`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-[#1da1f220] border border-[#1da1f230] text-[#1da1f2] text-sm font-medium hover:bg-[#1da1f230] transition-colors cursor-pointer"
               >
-                <span className="font-black text-sm">𝕏</span> Twitter
+                <span className="font-black text-sm">𝕏</span> {locale === "es" ? "Twitter" : "Twitter"}
               </a>
               <a
                 href={`https://wa.me/?text=${encodeURIComponent(
-                  `My WC2026 prediction: ${home.name} ${a}-${b} ${away.name} ${shareUrl}`
+                  locale === "es"
+                    ? `Mi predicción para el Mundial 2026: ${homeNameTr} ${a}-${b} ${awayNameTr} ${shareUrl}`
+                    : `My WC2026 prediction: ${home.name} ${a}-${b} ${away.name} ${shareUrl}`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-[#25d36620] border border-[#25d36630] text-[#25d366] text-sm font-medium hover:bg-[#25d36630] transition-colors cursor-pointer"
               >
-                <Share2 className="w-4 h-4" /> WhatsApp
+                <Share2 className="w-4 h-4" /> {locale === "es" ? "WhatsApp" : "WhatsApp"}
               </a>
             </div>
             <DownloadPredictionCard
-              teamA={home.name}
-              teamB={away.name}
+              teamA={homeNameTr}
+              teamB={awayNameTr}
               scoreA={a}
               scoreB={b}
-              winner={winnerName}
+              winner={winnerNameTr}
               confidence={aiPred?.confidence ?? 0}
             />
           </div>

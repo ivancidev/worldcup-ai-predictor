@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Bot, Check } from "lucide-react";
 import { FlagImage } from "@/components/ui/FlagImage";
+import { useTranslation, getTranslatedTeamName } from "@/lib/i18n/context";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -27,14 +28,15 @@ const PREVIEW_MATCHES = [
 ];
 
 const AI_FEATURES = [
-  "Real team statistics from live World Cup 2026 data",
-  "Last 5 matches and head-to-head records included",
-  "Confidence score for every prediction",
-  "Detailed reasoning you can read and share",
+  "showcase.feature1",
+  "showcase.feature2",
+  "showcase.feature3",
+  "showcase.feature4",
 ] as const;
 
 export default function ShowcaseSection() {
   const sectionRef = useRef<HTMLElement>(null);
+  const { t, locale } = useTranslation();
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -62,16 +64,15 @@ export default function ShowcaseSection() {
           <div className="showcase-text flex-1 w-full text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#f5c51815] border border-[#f5c51830] text-[#f5c518] text-sm mb-6">
               <Bot className="w-3.5 h-3.5" />
-              AI Analysis
+              {t("showcase.titleBadge")}
             </div>
             <h2 className="text-4xl sm:text-5xl font-black text-[#e8eaf0] mb-6 leading-tight">
-              Expert predictions,
+              {t("showcase.mainTitle")}
               <br />
-              <span className="gradient-text">instantly generated</span>
+              <span className="gradient-text">{t("showcase.gradientTitle")}</span>
             </h2>
             <p className="text-[#8899bb] text-lg leading-relaxed mb-8">
-              Pick any match, hit &quot;AI Predict&quot; and get a detailed analysis backed by real
-              match data. Goals per game, form and head-to-head history all analyzed in seconds.
+              {t("showcase.subtitle")}
             </p>
             <ul className="space-y-3 text-left">
               {AI_FEATURES.map((item) => (
@@ -79,7 +80,7 @@ export default function ShowcaseSection() {
                   <span className="w-5 h-5 rounded-full bg-[#f5c51820] border border-[#f5c51840] flex items-center justify-center text-[#f5c518] flex-shrink-0">
                     <Check className="w-3 h-3" />
                   </span>
-                  {item}
+                  {t(item)}
                 </li>
               ))}
             </ul>
@@ -94,7 +95,7 @@ export default function ShowcaseSection() {
                 style={{ animationDelay: `${idx * 0.15}s` }}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <TeamDisplay name={match.home.name} flag={match.home.flag} />
+                  <TeamDisplay name={getTranslatedTeamName(match.home.name, locale)} flag={match.home.flag} />
                   <div className="text-center flex-shrink-0 px-3">
                     <div className="text-2xl font-black text-[#e8eaf0] whitespace-nowrap">
                       {match.prediction.scoreA} — {match.prediction.scoreB}
@@ -110,19 +111,23 @@ export default function ShowcaseSection() {
                             : "#ef4444",
                       }}
                     >
-                      {match.prediction.confidence}% confidence
+                      {match.prediction.confidence}% {t("showcase.confidence")}
                     </div>
                   </div>
-                  <TeamDisplay name={match.away.name} flag={match.away.flag} align="right" />
+                  <TeamDisplay name={getTranslatedTeamName(match.away.name, locale)} flag={match.away.flag} align="right" />
                 </div>
                 <div className="flex items-center gap-2 pt-3 border-t border-[#1e2640]">
-                  <span className="text-xs text-[#4a5570]">AI Prediction:</span>
+                  <span className="text-xs text-[#4a5570]">{t("showcase.aiPrediction")}</span>
                   <span className="text-xs font-semibold text-[#f5c518]">
-                    {match.prediction.winner === "Draw" ? "Draw" : `${match.prediction.winner} wins`}
+                    {match.prediction.winner === "Draw"
+                      ? t("showcase.draw")
+                      : locale === "es"
+                      ? `Gana ${getTranslatedTeamName(match.prediction.winner, locale)}`
+                      : `${getTranslatedTeamName(match.prediction.winner, locale)} wins`}
                   </span>
                   <div className="ml-auto flex items-center gap-1.5 text-xs text-[#4a5570]">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" />
-                    AI
+                    {locale === "es" ? "IA" : "AI"}
                   </div>
                 </div>
               </div>

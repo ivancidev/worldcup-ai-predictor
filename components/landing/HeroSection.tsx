@@ -6,6 +6,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { FlagImage } from "@/components/ui/FlagImage";
+import { useTranslation, getTranslatedTeamName } from "@/lib/i18n/context";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -26,6 +27,7 @@ export default function HeroSection() {
   const statsRef     = useRef<HTMLDivElement>(null);
   const bgRef        = useRef<HTMLDivElement>(null);
   const teamsRef     = useRef<HTMLDivElement>(null);
+  const { t, locale } = useTranslation();
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -81,10 +83,10 @@ export default function HeroSection() {
       <div className="relative mb-6 sm:mb-8">
         <span className="inline-flex items-center rounded-full border border-[#f5c51828] bg-[#f5c51810] overflow-hidden text-sm font-medium">
           <span className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-[#f5c518] text-[#080b14] font-black tracking-wide text-[10px] sm:text-xs">
-            WC 2026
+            {t("hero.badgeLabel")}
           </span>
           <span className="px-3 py-1 sm:px-3.5 sm:py-1.5 text-[#c8a840] tracking-wide text-[10px] sm:text-xs">
-            Jun 11 – Jul 19 · USA, Canada &amp; Mexico
+            {t("hero.badgeDate")}
           </span>
         </span>
       </div>
@@ -93,21 +95,20 @@ export default function HeroSection() {
       <div ref={headlineRef} className="relative max-w-4xl mx-auto mb-4 sm:mb-6">
         <h1 className="text-4xl sm:text-6xl md:text-7xl font-black leading-[1.1] sm:leading-[1.05] tracking-tight text-[#e8eaf0] flex flex-col items-center gap-1 sm:gap-2">
           <span className="flex flex-wrap justify-center gap-x-2 sm:gap-x-4">
-            {"Predict the".split(" ").map((w, i) => (
+            {t("hero.title1").split(" ").map((w, i) => (
               <span key={i} className="word inline-block">{w}</span>
             ))}
           </span>
           <span className="flex flex-wrap justify-center items-center gap-x-2 sm:gap-x-4">
-            <span className="word inline-block gradient-text">World Cup</span>
-            <span className="word inline-block text-[#e8eaf0]">with AI</span>
+            <span className="word inline-block gradient-text">{t("hero.title2")}</span>
+            <span className="word inline-block text-[#e8eaf0]">{t("hero.title3")}</span>
           </span>
         </h1>
       </div>
 
       {/* Subtitle */}
       <p ref={subRef} className="relative max-w-2xl text-base sm:text-xl text-[#8899bb] leading-relaxed mb-8 sm:mb-10">
-        Real team stats, instant AI-powered match analysis, and a full bracket builder.
-        Build your predictions and share them with friends.
+        {t("hero.subtitle")}
       </p>
 
       {/* CTA */}
@@ -116,14 +117,14 @@ export default function HeroSection() {
           href="/auth"
           className="group flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 text-base font-bold bg-gradient-to-r from-[#f5c518] to-[#c9a000] text-[#080b14] rounded-2xl hover:from-[#ffd54f] hover:to-[#f5c518] transition-all duration-300 active:scale-95 shadow-xl shadow-[#f5c51830] cursor-pointer max-w-xs sm:max-w-none text-center"
         >
-          Start predicting
+          {t("hero.startPredicting")}
           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
         </Link>
         <Link
           href="/bracket"
           className="flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 text-base font-semibold text-[#e8eaf0] rounded-2xl border border-[#1e2640] hover:border-[#2d3a5a] hover:bg-[#1e2640] transition-all duration-200 cursor-pointer max-w-xs sm:max-w-none text-center"
         >
-          View bracket
+          {t("hero.viewBracket")}
           <ChevronRight className="w-4 h-4" />
         </Link>
       </div>
@@ -131,10 +132,10 @@ export default function HeroSection() {
       {/* Stats */}
       <div ref={statsRef} className="relative flex flex-wrap items-center justify-center gap-6 sm:gap-8 mb-8 sm:mb-12">
         {[
-          { value: "48",  label: "Teams" },
-          { value: "104", label: "Matches" },
-          { value: "12",  label: "Groups" },
-          { value: "AI",  label: "Predictions" },
+          { value: "48",  label: t("hero.statTeams") },
+          { value: "104", label: t("hero.statMatches") },
+          { value: "12",  label: t("hero.statGroups") },
+          { value: "AI",  label: t("hero.statPredictions") },
         ].map((stat) => (
           <div key={stat.label} className="stat-item text-center">
             <div className="text-2xl sm:text-3xl font-black text-[#f5c518]">{stat.value}</div>
@@ -152,15 +153,15 @@ export default function HeroSection() {
           >
             <FlagImage
               src={`https://flagcdn.com/w20/${team.flag}.png`}
-              alt={team.name}
+              alt={getTranslatedTeamName(team.name, locale)}
               cdnSize={20}
               className="w-5 h-3.5 object-cover rounded-sm"
             />
-            {team.name}
+            {getTranslatedTeamName(team.name, locale)}
           </div>
         ))}
         <div className="team-pill flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0e1220] border border-[#1e2640] text-sm text-[#4a5570]">
-          +42 more
+          {t("hero.moreTeams")}
         </div>
       </div>
     </section>

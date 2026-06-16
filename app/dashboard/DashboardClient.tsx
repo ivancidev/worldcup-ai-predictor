@@ -12,6 +12,7 @@ import { sortTodayFixtures } from "@/lib/fixture-status";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { FixtureRow } from "@/components/dashboard/FixtureRow";
 import { Calendar, CalendarClock } from "lucide-react";
+import { useTranslation, Locale } from "@/lib/i18n/context";
 
 interface FetchState {
   today: Fixture[];
@@ -22,7 +23,8 @@ interface FetchState {
   dayLabel: string;
 }
 
-export default function DashboardClient() {
+export default function DashboardClient({ locale }: { locale: Locale }) {
+  const { t } = useTranslation();
   const [state, setState] = useState<FetchState>({
     today: [],
     upcoming: [],
@@ -34,7 +36,7 @@ export default function DashboardClient() {
   useEffect(() => {
     const tz = getBrowserTimezone();
     const todayStr = getTodayLocalDate(tz);
-    const dayLabel = formatDayLabel(tz);
+    const dayLabel = formatDayLabel(tz, locale);
 
     fetch("/api/fixtures?round=Group Stage")
       .then((res) => (res.ok ? res.json() : { data: [] }))
@@ -67,7 +69,7 @@ export default function DashboardClient() {
           dayLabel,
         }));
       });
-  }, []);
+  }, [locale]);
 
   const { today, upcoming, loading, tz, dayLabel } = state;
 
@@ -78,7 +80,7 @@ export default function DashboardClient() {
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-base font-bold text-[#e8eaf0]">
-              Today&apos;s Schedule
+              {t("dashboard.todaySchedule")}
             </h2>
             {dayLabel && (
               <p className="text-xs text-[#4a5570] mt-0.5">{dayLabel}</p>
@@ -88,7 +90,7 @@ export default function DashboardClient() {
           {!loading && (
             <div className="flex items-center gap-1.5 text-xs mt-0.5 text-[#4a5570]">
               <Calendar className="w-3 h-3" />
-              <span>Official schedule</span>
+              <span>{t("dashboard.officialSchedule")}</span>
             </div>
           )}
         </div>
@@ -96,7 +98,7 @@ export default function DashboardClient() {
         {!loading && today.length > 0 && tz && (
           <div className="flex items-center gap-1.5 text-[10px] text-[#2d3a5a] mb-3">
             <CalendarClock className="w-3 h-3" />
-            <span>Times in your timezone ({tz.replace(/_/g, " ")})</span>
+            <span>{t("dashboard.timezoneNotice", { tz: tz.replace(/_/g, " ") })}</span>
           </div>
         )}
 
@@ -107,7 +109,7 @@ export default function DashboardClient() {
         ) : (
           <div className="space-y-2">
             {today.map((fixture) => (
-              <FixtureRow key={fixture.id} fixture={fixture} userTz={tz ?? "UTC"} />
+              <FixtureRow key={fixture.id} fixture={fixture} userTz={tz ?? "UTC"} locale={locale} />
             ))}
           </div>
         )}
@@ -117,10 +119,10 @@ export default function DashboardClient() {
       {!loading && upcoming.length > 0 && (
         <div>
           <h2 className="text-base font-bold text-[#e8eaf0] mb-1">
-            Upcoming matches
+            {t("dashboard.upcomingMatches")}
           </h2>
           <p className="text-xs text-[#4a5570] mb-4">
-            The next fixtures — tap any match to predict it.
+            {t("dashboard.upcomingMatchesDesc")}
           </p>
           <div className="space-y-2">
             {upcoming.map((fixture) => (
@@ -129,6 +131,7 @@ export default function DashboardClient() {
                 fixture={fixture}
                 userTz={tz ?? "UTC"}
                 showDate
+                locale={locale}
               />
             ))}
           </div>
@@ -151,12 +154,13 @@ function LoadingSkeleton() {
 }
 
 function NoMatchesToday() {
+  const { t } = useTranslation();
   return (
     <div className="text-center py-10 rounded-xl border border-dashed border-[#1e2640]">
       <Calendar className="w-8 h-8 text-[#2d3a5a] mx-auto mb-3" />
-      <p className="text-sm font-medium text-[#4a5570]">No matches today</p>
+      <p className="text-sm font-medium text-[#4a5570]">{t("dashboard.noMatchesToday")}</p>
       <p className="text-xs text-[#2d3a5a] mt-1">
-        Check the upcoming fixtures below
+        {t("dashboard.checkUpcoming")}
       </p>
     </div>
   );

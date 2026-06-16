@@ -4,13 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { Fixture } from "@/lib/types";
 import { getCountryFlagCode, fixtureToGroupMatchId } from "@/lib/world-cup-data";
+import { getTranslatedTeamName, Locale } from "@/lib/i18n/context";
 import { isLive, isFinished } from "@/lib/fixture-status";
 import { formatLocalTime } from "@/lib/timezone";
 import { StatusBadge } from "./StatusBadge";
 import { ChevronRight } from "lucide-react";
 
-function formatDayLabel(timestamp: number, tz: string): string {
-  return new Intl.DateTimeFormat("en-US", {
+function formatDayLabel(timestamp: number, tz: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale === "es" ? "es-ES" : "en-US", {
     timeZone: tz,
     weekday: "short",
     month: "short",
@@ -56,15 +57,19 @@ interface FixtureRowProps {
   userTz: string;
   /** Show the match day above the kickoff time (used in the Upcoming list). */
   showDate?: boolean;
+  locale?: Locale;
 }
 
-export function FixtureRow({ fixture, userTz, showDate = false }: FixtureRowProps) {
+export function FixtureRow({ fixture, userTz, showDate = false, locale = "en" }: FixtureRowProps) {
   const live      = isLive(fixture.status);
   const finished  = isFinished(fixture.status);
-  const localTime = formatLocalTime(fixture.timestamp, userTz);
+  const localTime = formatLocalTime(fixture.timestamp, userTz, locale);
   const groupLabel = fixture.league.round.match(/Group [A-L]/)?.[0] ?? null;
   const groupLetter = groupLabel?.slice(-1) ?? null;
   const matchId = fixtureToGroupMatchId(fixture.homeTeam.name, fixture.awayTeam.name);
+
+  const translatedHomeName = getTranslatedTeamName(fixture.homeTeam.name, locale);
+  const translatedAwayName = getTranslatedTeamName(fixture.awayTeam.name, locale);
 
   const rowContent = (
     <>
@@ -72,8 +77,8 @@ export function FixtureRow({ fixture, userTz, showDate = false }: FixtureRowProp
       <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
         <TeamFlag name={fixture.homeTeam.name} flagCode={fixture.homeTeam.flagCode} />
         <span className={`font-semibold text-xs sm:text-sm truncate ${finished ? "text-[#4a5570]" : "text-[#e8eaf0]"}`}>
-          <span className="hidden xs:inline">{fixture.homeTeam.name}</span>
-          <span className="inline xs:hidden">{fixture.homeTeam.code || fixture.homeTeam.name}</span>
+          <span className="hidden xs:inline">{translatedHomeName}</span>
+          <span className="inline xs:hidden">{fixture.homeTeam.code || translatedHomeName}</span>
         </span>
       </div>
 
@@ -81,7 +86,7 @@ export function FixtureRow({ fixture, userTz, showDate = false }: FixtureRowProp
       <div className="shrink-0 flex flex-col items-center gap-0.5 px-1 sm:px-2 min-w-[76px] sm:min-w-[88px]">
         {showDate && (
           <span className="text-[8px] sm:text-[10px] font-semibold text-[#8899bb] uppercase tracking-wider">
-            {formatDayLabel(fixture.timestamp, userTz)}
+            {formatDayLabel(fixture.timestamp, userTz, locale)}
           </span>
         )}
         <span className={`text-xs sm:text-sm font-bold ${finished ? "text-[#4a5570]" : "text-[#f5c518]"}`}>
@@ -100,8 +105,8 @@ export function FixtureRow({ fixture, userTz, showDate = false }: FixtureRowProp
       {/* ── Away ── */}
       <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0 justify-end">
         <span className={`font-semibold text-xs sm:text-sm truncate text-right ${finished ? "text-[#4a5570]" : "text-[#e8eaf0]"}`}>
-          <span className="hidden xs:inline">{fixture.awayTeam.name}</span>
-          <span className="inline xs:hidden">{fixture.awayTeam.code || fixture.awayTeam.name}</span>
+          <span className="hidden xs:inline">{translatedAwayName}</span>
+          <span className="inline xs:hidden">{fixture.awayTeam.code || translatedAwayName}</span>
         </span>
         <TeamFlag name={fixture.awayTeam.name} flagCode={fixture.awayTeam.flagCode} />
       </div>
