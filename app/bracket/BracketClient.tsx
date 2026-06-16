@@ -10,6 +10,7 @@ import { FireworksBackground } from "@/components/FireworksBackground";
 import { FlagImage } from "@/components/ui/FlagImage";
 import { Bot, Trophy, Search, Plus, X, HelpCircle, Users, Edit3, ChevronRight, Zap, Save } from "lucide-react";
 import { DownloadBracketCard } from "@/components/share/DownloadBracketCard";
+import { useTranslation, getTranslatedTeamName } from "@/lib/i18n/context";
 
 const LS_KEY = "wc2026-bracket-slots";
 
@@ -86,6 +87,7 @@ function getNextSlot(slotId: string): { nextId: string; position: "home" | "away
 const sortIdx = (id: string) => parseInt(id.split("-").slice(-1)[0]) || 0;
 
 export default function BracketClient() {
+  const { t, locale } = useTranslation();
   const { champion, setChampion, completedGroups } = usePredictionStore();
 
   // Always start with a clean bracket (SSR-safe). Rehydrate from localStorage in useEffect.
@@ -204,9 +206,10 @@ export default function BracketClient() {
     return ALL_TEAMS.filter(t => {
       if (usedTeamIds.has(t.id) && t.id !== ownTeamId) return false;
       if (!q) return true;
-      return t.name.toLowerCase().includes(q) || t.code.toLowerCase().includes(q);
+      const translatedName = getTranslatedTeamName(t.name, locale).toLowerCase();
+      return t.name.toLowerCase().includes(q) || translatedName.includes(q) || t.code.toLowerCase().includes(q);
     });
-  }, [pickerSearch, usedTeamIds, teamPicker, bracket]);
+  }, [pickerSearch, usedTeamIds, teamPicker, bracket, locale]);
 
   const openTeamPicker = useCallback((slotId: string, position: "home" | "away") => {
     setTeamPicker({ slotId, position });
@@ -252,7 +255,7 @@ export default function BracketClient() {
       const res = await fetch("/api/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamA: slot.homeTeam.name, teamB: slot.awayTeam.name, matchId: slotId }),
+        body: JSON.stringify({ teamA: slot.homeTeam.name, teamB: slot.awayTeam.name, matchId: slotId, locale }),
       });
       const pred: AIPrediction = await res.json();
       const winner = pred.scoreA >= pred.scoreB ? slot.homeTeam : slot.awayTeam;
@@ -268,7 +271,7 @@ export default function BracketClient() {
       });
     } catch { /* ignore */ }
     setDecidingPenalties(null);
-  }, [bracket, handlePenaltyWinner]);
+  }, [bracket, handlePenaltyWinner, locale]);
 
   const handleScoreChange = useCallback((slotId: string, scoreA: number | null, scoreB: number | null) => {
     setBracket(prev => {
@@ -382,7 +385,7 @@ export default function BracketClient() {
         const res = await fetch("/api/predict", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ teamA: slot.homeTeam.name, teamB: slot.awayTeam.name, matchId: slotId }),
+          body: JSON.stringify({ teamA: slot.homeTeam.name, teamB: slot.awayTeam.name, matchId: slotId, locale }),
         });
         const pred: AIPrediction = await res.json();
         scoreA = pred.scoreA; scoreB = pred.scoreB;
@@ -408,7 +411,7 @@ export default function BracketClient() {
 
   // Reset bracket — clear all slots and champion
   const resetBracket = () => {
-    if (!window.confirm("Reset the entire bracket? All teams and scores will be cleared.")) return;
+    if (!window.confirm(t("bracket.resetConfirm"))) return;
     setBracket(buildInitialBracket());
     setChampion(null);
   };
@@ -421,7 +424,7 @@ export default function BracketClient() {
       const res = await fetch("/api/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamA: slot.homeTeam.name, teamB: slot.awayTeam.name, matchId: slotId }),
+        body: JSON.stringify({ teamA: slot.homeTeam.name, teamB: slot.awayTeam.name, matchId: slotId, locale }),
       });
       const pred: AIPrediction = await res.json();
       handleScoreChange(slotId, pred.scoreA, pred.scoreB);
@@ -436,7 +439,7 @@ export default function BracketClient() {
       });
     } catch { /* ignore */ }
     setDecidingAI(null);
-  }, [bracket, handleScoreChange]);
+  }, [bracket, handleScoreChange, locale]);
 
   const slotMap = useMemo(() => Object.fromEntries(bracket.map(s => [s.id, s])), [bracket]);
   const finalSlot = slotMap["f-0"];
@@ -452,7 +455,7 @@ export default function BracketClient() {
         {/* Primary action */}
         <Button variant="gold" onClick={handleAIPredictAll} loading={aiAllLoading}>
           <Bot className="w-4 h-4" />
-          AI Predict All
+          {aiAllLoading ? t("bracket.loading") : t("bracket.autoFill")}
         </Button>
 
         {aiAllLoading && (
@@ -468,14 +471,14 @@ export default function BracketClient() {
         <div className="ml-auto flex items-center gap-2 animate-fade-in">
           <DownloadBracketCard bracket={bracket} champion={champion} variant="secondary" size="sm" className="mt-0 w-auto" />
           <Button variant="ghost" size="sm" onClick={resetBracket}>
-            Reset
+            {t("bracket.reset")}
           </Button>
           {/* Help button */}
           <button
             onClick={() => setShowHelp(true)}
             className="w-7 h-7 flex items-center justify-center rounded-lg text-[#4a5570] hover:text-[#8899bb] hover:bg-[#1e2640] transition-all cursor-pointer"
-            aria-label="How the bracket works"
-            title="How the bracket works"
+            aria-label={t("bracket.howItWorks")}
+            title={t("bracket.howItWorks")}
           >
             <HelpCircle className="w-4 h-4" />
           </button>
@@ -493,7 +496,7 @@ export default function BracketClient() {
           
           {/* R32 Left */}
           <div className="flex flex-col shrink-0" style={{ width: "150px" }}>
-            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">Round of 32</div>
+            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">{t("bracket.roundOf32")}</div>
             <div className="flex flex-col justify-around h-[950px]">
               {getColSlots("l-r32").map(slot => (
                 <BracketCard
@@ -517,7 +520,7 @@ export default function BracketClient() {
 
           {/* R16 Left */}
           <div className="flex flex-col shrink-0" style={{ width: "150px" }}>
-            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">Round of 16</div>
+            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">{t("bracket.roundOf16")}</div>
             <div className="flex flex-col justify-around h-[950px]">
               {getColSlots("l-r16").map(slot => (
                 <BracketCard
@@ -541,7 +544,7 @@ export default function BracketClient() {
 
           {/* QF Left */}
           <div className="flex flex-col shrink-0" style={{ width: "150px" }}>
-            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">Quarterfinal</div>
+            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">{t("bracket.quarterfinals")}</div>
             <div className="flex flex-col justify-around h-[950px]">
               {getColSlots("l-qf").map(slot => (
                 <BracketCard
@@ -565,7 +568,7 @@ export default function BracketClient() {
 
           {/* SF Left */}
           <div className="flex flex-col shrink-0" style={{ width: "150px" }}>
-            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">Semifinal</div>
+            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">{t("bracket.semifinals")}</div>
             <div className="flex flex-col justify-around h-[950px]">
               {getColSlots("l-sf").map(slot => (
                 <BracketCard
@@ -589,7 +592,7 @@ export default function BracketClient() {
 
           {/* CENTER — Trophy + Final */}
           <div className="relative shrink-0 flex flex-col items-center animate-fade-in" style={{ width: "180px", height: "950px", paddingTop: "24px" }}>
-            <div className="text-[10px] font-bold text-[#f5c518] uppercase tracking-wider mb-3 text-center absolute top-0 left-0 right-0">Final</div>
+            <div className="text-[10px] font-bold text-[#f5c518] uppercase tracking-wider mb-3 text-center absolute top-0 left-0 right-0">{t("bracket.final")}</div>
 
             {/* Champion / Trophy centered below the top area */}
             <div className="absolute top-[220px] flex flex-col items-center gap-2">
@@ -599,8 +602,8 @@ export default function BracketClient() {
               <p className="text-[10px] text-[#f5c518] font-bold uppercase tracking-widest">WC 2026</p>
               {champion && (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f5c51815] border border-[#f5c51830] animate-fade-in">
-                  <FlagImage src={getFlagUrl(champion.flagCode, 20)} alt={champion.name} cdnSize={20} className="w-5 h-3.5 object-cover rounded-sm shrink-0" />
-                  <span className="text-xs font-black text-[#f5c518]">{champion.name}</span>
+                  <FlagImage src={getFlagUrl(champion.flagCode, 20)} alt={getTranslatedTeamName(champion.name, locale)} cdnSize={20} className="w-5 h-3.5 object-cover rounded-sm shrink-0" />
+                  <span className="text-xs font-black text-[#f5c518]">{getTranslatedTeamName(champion.name, locale)}</span>
                 </div>
               )}
             </div>
@@ -628,7 +631,7 @@ export default function BracketClient() {
 
           {/* SF Right */}
           <div className="flex flex-col shrink-0" style={{ width: "150px" }}>
-            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">Semifinal</div>
+            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">{t("bracket.semifinals")}</div>
             <div className="flex flex-col justify-around h-[950px]">
               {getColSlots("r-sf").map(slot => (
                 <BracketCard
@@ -652,7 +655,7 @@ export default function BracketClient() {
 
           {/* QF Right */}
           <div className="flex flex-col shrink-0" style={{ width: "150px" }}>
-            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">Quarterfinal</div>
+            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">{t("bracket.quarterfinals")}</div>
             <div className="flex flex-col justify-around h-[950px]">
               {getColSlots("r-qf").map(slot => (
                 <BracketCard
@@ -676,7 +679,7 @@ export default function BracketClient() {
 
           {/* R16 Right */}
           <div className="flex flex-col shrink-0" style={{ width: "150px" }}>
-            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">Round of 16</div>
+            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">{t("bracket.roundOf16")}</div>
             <div className="flex flex-col justify-around h-[950px]">
               {getColSlots("r-r16").map(slot => (
                 <BracketCard
@@ -700,7 +703,7 @@ export default function BracketClient() {
 
           {/* R32 Right */}
           <div className="flex flex-col shrink-0" style={{ width: "150px" }}>
-            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">Round of 32</div>
+            <div className="text-[10px] font-bold text-[#8899bb] uppercase tracking-wider mb-3 text-center">{t("bracket.roundOf32")}</div>
             <div className="flex flex-col justify-around h-[950px]">
               {getColSlots("r-r32").map(slot => (
                 <BracketCard
@@ -738,13 +741,13 @@ export default function BracketClient() {
               <Trophy className="w-10 h-10 text-[#080b14]" strokeWidth={1.5} />
             </div>
             <div>
-              <p className="text-[#f5c518] text-xs font-bold uppercase tracking-[0.2em] mb-2">World Champion 2026</p>
+              <p className="text-[#f5c518] text-xs font-bold uppercase tracking-[0.2em] mb-2">{t("bracket.worldChampion")}</p>
               <div className="flex items-center gap-3 justify-center">
-                <FlagImage src={getFlagUrl(champion.flagCode, 40)} alt={champion.name} cdnSize={40} className="w-12 h-8 object-cover rounded-md shrink-0" />
-                <p className="text-3xl font-black text-[#e8eaf0]">{champion.name}</p>
+                <FlagImage src={getFlagUrl(champion.flagCode, 40)} alt={getTranslatedTeamName(champion.name, locale)} cdnSize={40} className="w-12 h-8 object-cover rounded-md shrink-0" />
+                <p className="text-3xl font-black text-[#e8eaf0]">{getTranslatedTeamName(champion.name, locale)}</p>
               </div>
             </div>
-            <p className="text-[#4a5570] text-xs mt-1">Click anywhere to dismiss</p>
+            <p className="text-[#4a5570] text-xs mt-1">{t("bracket.dismissFireworks")}</p>
           </div>
           <button
             onClick={() => setShowFireworks(false)}
@@ -756,7 +759,7 @@ export default function BracketClient() {
       )}
 
       {/* Team picker */}
-      <Dialog open={!!teamPicker} onClose={() => setTeamPicker(null)} title={`Pick ${teamPicker?.position === "home" ? "Home" : "Away"} Team`}>
+      <Dialog open={!!teamPicker} onClose={() => setTeamPicker(null)} title={teamPicker?.position === "home" ? t("bracket.pickHomeTeam") : t("bracket.pickAwayTeam")}>
         <div className="space-y-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4a5570]" />
@@ -764,27 +767,27 @@ export default function BracketClient() {
               autoFocus
               value={pickerSearch}
               onChange={e => setPickerSearch(e.target.value)}
-              placeholder="Search team or code..."
+              placeholder={t("bracket.searchPlaceholder")}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#141928] border border-[#1e2640] text-[#e8eaf0] placeholder-[#4a5570] focus:outline-none focus:border-[#f5c518] transition-colors cursor-text text-sm"
             />
           </div>
           {filteredTeams.length === 0 && pickerSearch === "" && (
-            <p className="text-center text-sm text-[#4a5570] py-3">All 48 teams are already placed in the bracket.</p>
+            <p className="text-center text-sm text-[#4a5570] py-3">{t("bracket.allTeamsPlaced")}</p>
           )}
           <div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-0.5">
             {filteredTeams.map(team => (
               <button key={team.id} onClick={() => setTeamInSlot(team)}
                 className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[#141928] border border-[#1e2640] hover:border-[#f5c51840] hover:bg-[#1a2035] transition-all cursor-pointer text-left"
               >
-                <FlagImage src={getFlagUrl(team.flagCode, 20)} alt={team.name} cdnSize={20} className="w-6 h-4 object-cover rounded-sm shrink-0" />
+                <FlagImage src={getFlagUrl(team.flagCode, 20)} alt={getTranslatedTeamName(team.name, locale)} cdnSize={20} className="w-6 h-4 object-cover rounded-sm shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-[#e8eaf0] truncate">{team.name}</p>
+                  <p className="text-xs font-semibold text-[#e8eaf0] truncate">{getTranslatedTeamName(team.name, locale)}</p>
                   <p className="text-[10px] text-[#4a5570]">{team.code}</p>
                 </div>
               </button>
             ))}
             {filteredTeams.length === 0 && pickerSearch !== "" && (
-              <p className="col-span-2 text-center text-sm text-[#4a5570] py-6">No teams found</p>
+              <p className="col-span-2 text-center text-sm text-[#4a5570] py-6">{t("bracket.noTeamsFound")}</p>
             )}
           </div>
         </div>
@@ -795,7 +798,7 @@ export default function BracketClient() {
         <Dialog
           open={aiModal.open}
           onClose={() => setAiModal(null)}
-          title="AI Prediction Analysis"
+          title={t("bracket.aiPredictionAnalysis")}
           className="max-w-md"
         >
           <div className="space-y-4">
@@ -804,7 +807,7 @@ export default function BracketClient() {
                 <div className="flex justify-center mb-1">
                   <FlagImage src={getFlagUrl(aiModal.teamA.flagCode, 40)} cdnSize={40} className="w-8 h-5 object-cover rounded-sm" />
                 </div>
-                <p className="text-xs font-bold text-[#e8eaf0] truncate">{aiModal.teamA.name}</p>
+                <p className="text-xs font-bold text-[#e8eaf0] truncate">{getTranslatedTeamName(aiModal.teamA.name, locale)}</p>
                 <p className="text-2xl font-black text-[#f5c518] mt-1">{aiModal.scoreA}</p>
               </div>
               <div className="text-[#4a5570] font-bold text-lg px-3">—</div>
@@ -812,7 +815,7 @@ export default function BracketClient() {
                 <div className="flex justify-center mb-1">
                   <FlagImage src={getFlagUrl(aiModal.teamB.flagCode, 40)} cdnSize={40} className="w-8 h-5 object-cover rounded-sm" />
                 </div>
-                <p className="text-xs font-bold text-[#e8eaf0] truncate">{aiModal.teamB.name}</p>
+                <p className="text-xs font-bold text-[#e8eaf0] truncate">{getTranslatedTeamName(aiModal.teamB.name, locale)}</p>
                 <p className="text-2xl font-black text-[#f5c518] mt-1">{aiModal.scoreB}</p>
               </div>
             </div>
@@ -820,20 +823,20 @@ export default function BracketClient() {
             <div className="flex items-center justify-between text-xs text-[#8899bb] px-1">
               <span className="flex items-center gap-1">
                 <Bot className="w-3.5 h-3.5 text-[#f5c518]" />
-                AI Prediction
+                {t("bracket.aiPrediction")}
               </span>
               <span className="px-2 py-0.5 rounded bg-[#f5c51815] text-[#f5c518] font-bold">
-                {aiModal.confidence}% Confidence
+                {aiModal.confidence}{t("bracket.confidenceSuffix")}
               </span>
             </div>
 
             <div className="p-4 rounded-xl bg-[#141928] border border-[#1e2640]/50 max-h-56 overflow-y-auto">
-              <h4 className="text-xs font-bold text-[#e8eaf0] mb-2 uppercase tracking-wider">AI Reasoning</h4>
+              <h4 className="text-xs font-bold text-[#e8eaf0] mb-2 uppercase tracking-wider">{t("bracket.aiReasoning")}</h4>
               <p className="text-xs text-[#8899bb] leading-relaxed whitespace-pre-wrap">{aiModal.reasoning}</p>
             </div>
 
             <Button variant="gold" className="w-full text-xs font-bold py-2.5" onClick={() => setAiModal(null)}>
-              Done
+              {t("bracket.done")}
             </Button>
           </div>
         </Dialog>
@@ -843,39 +846,40 @@ export default function BracketClient() {
   );
 }
 
-const HELP_TIPS = [
-  {
-    icon: Users,
-    label: "Teams auto-fill from Group Stage",
-    desc: "Complete all 6 group matches and the qualified teams seed into R32 automatically.",
-  },
-  {
-    icon: Edit3,
-    label: "R32 slots are editable",
-    desc: "Click any team name in the outer columns to change it manually.",
-  },
-  {
-    icon: ChevronRight,
-    label: "Enter scores to advance",
-    desc: "The winner auto-moves to the next round. R16 onwards only advances via scores — no manual picks.",
-  },
-  {
-    icon: Zap,
-    label: "Draws → Penalties",
-    desc: "Equal scores show a penalty picker. Choose the winner yourself or let AI decide.",
-  },
-  {
-    icon: Save,
-    label: "Auto-saved",
-    desc: "Everything is saved in your browser automatically. Use Share to copy a link.",
-  },
-] as const;
-
 function BracketHelpModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation();
+  const tips = [
+    {
+      icon: Users,
+      label: t("bracket.tip1Title"),
+      desc: t("bracket.tip1Desc"),
+    },
+    {
+      icon: Edit3,
+      label: t("bracket.tip2Title"),
+      desc: t("bracket.tip2Desc"),
+    },
+    {
+      icon: ChevronRight,
+      label: t("bracket.tip3Title"),
+      desc: t("bracket.tip3Desc"),
+    },
+    {
+      icon: Zap,
+      label: t("bracket.tip4Title"),
+      desc: t("bracket.tip4Desc"),
+    },
+    {
+      icon: Save,
+      label: t("bracket.tip5Title"),
+      desc: t("bracket.tip5Desc"),
+    },
+  ];
+
   return (
-    <Dialog open={open} onClose={onClose} title="How the Bracket works">
+    <Dialog open={open} onClose={onClose} title={t("bracket.howItWorks")}>
       <ul className="space-y-3">
-        {HELP_TIPS.map(({ icon: Icon, label, desc }) => (
+        {tips.map(({ icon: Icon, label, desc }) => (
           <li key={label} className="flex gap-3 items-start">
             <span className="mt-0.5 w-7 h-7 shrink-0 flex items-center justify-center rounded-lg bg-[#f5c51815] border border-[#f5c51825]">
               <Icon className="w-3.5 h-3.5 text-[#f5c518]" />
@@ -907,6 +911,7 @@ function BracketCard({
   onAIPredict: () => void;
   decidingAI?: boolean;
 }) {
+  const { t, locale } = useTranslation();
   const homeWins = !!slot.winner && slot.winner.id === slot.homeTeam?.id;
   const awayWins = !!slot.winner && slot.winner.id === slot.awayTeam?.id;
   const bothScores = slot.scoreA !== null && slot.scoreB !== null;
@@ -942,11 +947,11 @@ function BracketCard({
             className="flex items-center gap-1 py-1 px-2 rounded bg-[#f5c51810] border border-[#f5c51820] hover:bg-[#f5c51820] hover:border-[#f5c51840] transition-all cursor-pointer text-[#f5c518] text-[9px] font-bold disabled:opacity-40"
           >
             {decidingAI ? (
-              <span className="text-[9px] text-[#f5c518]">Predicting…</span>
+              <span className="text-[9px] text-[#f5c518]">{t("bracket.predicting")}</span>
             ) : (
               <>
                 <Bot className="w-3 h-3 text-[#f5c518]" />
-                <span>AI Predict</span>
+                <span>{t("groups.aiPredict")}</span>
               </>
             )}
           </button>
@@ -956,14 +961,14 @@ function BracketCard({
       {/* Penalty shootout picker — appears when scores are equal */}
       {awaitingPenalties && (
         <div className="px-2.5 py-2 border-t border-[#f5c51820] bg-[#f5c51806]">
-          <p className="text-[9px] text-[#f5c518] font-bold uppercase tracking-wider mb-1.5">Draw — Penalties</p>
+          <p className="text-[9px] text-[#f5c518] font-bold uppercase tracking-wider mb-1.5">{t("bracket.drawPenalties")}</p>
           <div className="flex gap-1">
             <button
               onClick={() => onPenaltyWinner(slot.homeTeam!)}
               className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded bg-[#141928] border border-[#1e2640] hover:border-[#f5c51840] hover:bg-[#1a2035] transition-all cursor-pointer min-w-0"
             >
               <FlagImage src={getFlagUrl(slot.homeTeam!.flagCode, 20)} cdnSize={20} className="w-4 h-2.5 object-cover rounded-sm shrink-0" />
-              <span className="text-[10px] text-[#c8cfe0] truncate">{slot.homeTeam!.name.split(" ")[0]}</span>
+              <span className="text-[10px] text-[#c8cfe0] truncate">{getTranslatedTeamName(slot.homeTeam!.name, locale).split(" ")[0]}</span>
             </button>
             <button
               onClick={onAIPenalty}
@@ -980,7 +985,7 @@ function BracketCard({
               className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded bg-[#141928] border border-[#1e2640] hover:border-[#f5c51840] hover:bg-[#1a2035] transition-all cursor-pointer min-w-0"
             >
               <FlagImage src={getFlagUrl(slot.awayTeam!.flagCode, 20)} cdnSize={20} className="w-4 h-2.5 object-cover rounded-sm shrink-0" />
-              <span className="text-[10px] text-[#c8cfe0] truncate">{slot.awayTeam!.name.split(" ")[0]}</span>
+              <span className="text-[10px] text-[#c8cfe0] truncate">{getTranslatedTeamName(slot.awayTeam!.name, locale).split(" ")[0]}</span>
             </button>
           </div>
         </div>
@@ -990,7 +995,7 @@ function BracketCard({
       {penaltiesDecided && (
         <div className="px-2.5 py-1.5 border-t border-[#f5c51815] flex items-center gap-1.5">
           <FlagImage src={getFlagUrl(slot.winner!.flagCode, 20)} cdnSize={20} className="w-3.5 h-2.5 object-cover rounded-sm" />
-          <span className="text-[9px] text-[#f5c518] font-bold">Pen. {slot.winner!.name.split(" ")[0]}</span>
+          <span className="text-[9px] text-[#f5c518] font-bold">{t("bracket.penWinnerPrefix")}{getTranslatedTeamName(slot.winner!.name, locale).split(" ")[0]}</span>
         </div>
       )}
     </div>
@@ -1006,11 +1011,12 @@ function TeamInputRow({
   onPickTeam?: () => void;
   onScoreChange: (v: number | null) => void;
 }) {
+  const { t, locale } = useTranslation();
   const teamContent = team ? (
     <>
-      <FlagImage src={getFlagUrl(team.flagCode, 20)} alt={team.name} cdnSize={20} className="w-5 h-3.5 object-cover rounded-sm shrink-0" />
+      <FlagImage src={getFlagUrl(team.flagCode, 20)} alt={getTranslatedTeamName(team.name, locale)} cdnSize={20} className="w-5 h-3.5 object-cover rounded-sm shrink-0" />
       <span className={`text-[11px] font-medium truncate ${isWinner ? "text-[#f5c518]" : "text-[#e8eaf0]"}`}>
-        {team.name}
+        {getTranslatedTeamName(team.name, locale)}
       </span>
     </>
   ) : (
@@ -1018,10 +1024,10 @@ function TeamInputRow({
       <div className="w-5 h-3.5 bg-[#1e2640] rounded-sm shrink-0" />
       {onPickTeam ? (
         <span className="text-[11px] text-[#4a5570] italic flex items-center gap-1">
-          TBD <Plus className="w-2.5 h-2.5" />
+          {t("bracket.noTeam")} <Plus className="w-2.5 h-2.5" />
         </span>
       ) : (
-        <span className="text-[11px] text-[#2d3a5a] italic">TBD</span>
+        <span className="text-[11px] text-[#2d3a5a] italic">{t("bracket.noTeam")}</span>
       )}
     </>
   );

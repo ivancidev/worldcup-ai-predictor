@@ -101,19 +101,20 @@ async function fetchH2H(teamA: number, teamB: number) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { teamA, teamB, teamAId, teamBId } = body;
+    const { teamA, teamB, teamAId, teamBId, locale } = body;
 
     if (!teamA || !teamB) {
       return Response.json({ error: "teamA and teamB are required" }, { status: 400 });
     }
 
     const supabase = await createClient();
-    // Key the cache by matchup, never by matchId alone: bracket slot ids like
+    // Key the cache by matchup and locale, never by matchId alone: bracket slot ids like
     // "f-0" are shared by every user, and the same slot holds different teams
     // depending on each user's bracket.
     const slug = (name: string) =>
       name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-");
-    const cacheKey = `predict_${slug(teamA)}_vs_${slug(teamB)}`;
+    const activeLocale = locale === "es" ? "es" : "en";
+    const cacheKey = `predict_${activeLocale}_${slug(teamA)}_vs_${slug(teamB)}`;
 
     // The cached prediction is only a fallback for when every Groq model
     // fails — each request gets a fresh AI analysis so results can vary.
@@ -132,12 +133,14 @@ export async function POST(request: NextRequest) {
     const statsContext = buildStatsContext(teamA, teamB, statsA, statsB, h2h);
 
     const groq = getGroqClient();
+    const isSpanish = locale === "es";
     const messages: Groq.Chat.ChatCompletionMessageParam[] = [
       {
         role: "system",
         content: `You are a world-class football analyst specializing in FIFA World Cup predictions.
 You analyze team statistics, head-to-head records, current form, and tactical matchups to provide expert predictions.
-Always respond with valid JSON only, no markdown or extra text.`,
+Always respond with valid JSON only, no markdown or extra text.
+${isSpanish ? "IMPORTANT: You MUST write the 'reasoning' analysis in Spanish." : ""}`,
       },
       {
         role: "user",
@@ -154,7 +157,7 @@ Respond with this exact JSON structure:
   "scoreA": <integer score for ${teamA}>,
   "scoreB": <integer score for ${teamB}>,
   "confidence": <integer 40-95>,
-  "reasoning": "<2-3 paragraph expert analysis explaining the prediction, key factors, tactical considerations, and historical context>"
+  "reasoning": "<2-3 paragraph expert analysis explaining the prediction, key factors, tactical considerations, and historical context>${isSpanish ? " (written in Spanish)" : ""}"
 }`,
       },
     ];
@@ -170,7 +173,7 @@ Respond with this exact JSON structure:
       }
       if (error instanceof Groq.APIError && error.status === 429) {
         return Response.json(
-          { error: "AI service is at capacity right now — please try again in a few minutes." },
+          { error: isSpanish ? "El servicio de IA está saturado en este momento. Inténtelo de nuevo en unos minutos." : "AI service is at capacity right now — please try again in a few minutes." },
           { status: 429 }
         );
       }
@@ -187,7 +190,7 @@ Respond with this exact JSON structure:
       scoreA: Math.max(0, Math.min(10, parseInt(prediction.scoreA) || 1)),
       scoreB: Math.max(0, Math.min(10, parseInt(prediction.scoreB) || 0)),
       confidence: Math.max(40, Math.min(95, parseInt(prediction.confidence) || 60)),
-      reasoning: prediction.reasoning || "AI analysis unavailable.",
+      reasoning: prediction.reasoning || (isSpanish ? "El análisis de la IA no está disponible." : "AI analysis unavailable."),
     };
 
     await supabase.from("api_cache").upsert({

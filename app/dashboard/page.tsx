@@ -3,12 +3,15 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import DashboardClient from "./DashboardClient";
 import { Target, BarChart2, Trophy, Users, ChevronRight, Bot, Zap } from "lucide-react";
+import { getServerLocale } from "@/lib/i18n/server";
+import { getTranslation } from "@/lib/i18n/utils";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/auth");
 
+  const locale = await getServerLocale();
   const username = user.user_metadata?.username || user.email?.split("@")[0] || "Predictor";
 
   const { count: predictionsCount } = await supabase
@@ -21,10 +24,10 @@ export default async function DashboardPage() {
   const hasStarted   = daysToKickoff === 0;
 
   const stats = [
-    { label: "My Predictions",  value: predictionsCount || 0, icon: Target,   accent: "#f5c518", bg: "rgba(245,197,24,0.07)"  },
-    { label: "Groups",          value: 12,                    icon: BarChart2, accent: "#60a5fa", bg: "rgba(96,165,250,0.07)"  },
-    { label: "Teams",           value: 48,                    icon: Users,     accent: "#34d399", bg: "rgba(52,211,153,0.07)"  },
-    { label: "Days to Final",   value: daysToFinal,           icon: Trophy,    accent: "#c084fc", bg: "rgba(192,132,252,0.07)" },
+    { label: getTranslation(locale, "dashboard.statsPredictions"),  value: predictionsCount || 0, icon: Target,   accent: "#f5c518", bg: "rgba(245,197,24,0.07)"  },
+    { label: getTranslation(locale, "dashboard.statsGroups"),       value: 12,                    icon: BarChart2, accent: "#60a5fa", bg: "rgba(96,165,250,0.07)"  },
+    { label: getTranslation(locale, "dashboard.statsTeams"),        value: 48,                    icon: Users,     accent: "#34d399", bg: "rgba(52,211,153,0.07)"  },
+    { label: getTranslation(locale, "dashboard.statsDaysToFinal"),  value: daysToFinal,           icon: Trophy,    accent: "#c084fc", bg: "rgba(192,132,252,0.07)" },
   ];
 
   return (
@@ -51,10 +54,10 @@ export default async function DashboardPage() {
             <div className="text-center sm:text-left flex flex-col items-center sm:items-start">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#f5c51812] border border-[#f5c51828] text-[#f5c518] text-[10px] sm:text-xs font-semibold mb-4 sm:mb-5 max-w-full">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#f5c518] animate-pulse" />
-                FIFA World Cup 2026 · USA &amp; Canada &amp; Mexico
+                {getTranslation(locale, "dashboard.fifaSub")}
               </div>
               <h1 className="text-2xl sm:text-4xl font-black text-[#e8eaf0] leading-tight mb-2">
-                Welcome back,{" "}
+                {getTranslation(locale, "dashboard.welcomeBack")}{" "}
                 <span
                   className="text-transparent bg-clip-text"
                   style={{ backgroundImage: "linear-gradient(90deg, #f5c518, #fbbf24)" }}
@@ -65,15 +68,11 @@ export default async function DashboardPage() {
               <p className="text-[#8899bb] text-xs sm:text-base">
                 {hasStarted ? (
                   <>
-                    The World Cup is{" "}
-                    <span className="text-[#e8eaf0] font-semibold">underway</span>.
-                    {" "}Make your AI-powered predictions now.
+                    {getTranslation(locale, "dashboard.hasStartedMessage")}
                   </>
                 ) : (
                   <>
-                    The Group Stage kicks off in{" "}
-                    <span className="text-[#e8eaf0] font-semibold">{daysToKickoff} day{daysToKickoff !== 1 ? "s" : ""}</span>.
-                    {" "}Make your AI-powered predictions now.
+                    {getTranslation(locale, "dashboard.countdownMessage", { days: daysToKickoff })}
                   </>
                 )}
               </p>
@@ -82,11 +81,11 @@ export default async function DashboardPage() {
             {/* Right: countdown badge */}
             <div className="flex gap-3 justify-center sm:justify-end w-full sm:w-auto shrink-0">
               {hasStarted ? (
-                <LiveBadge />
+                <LiveBadge locale={locale} />
               ) : (
-                <CountdownBadge label="Kickoff" value={daysToKickoff} accent="#f5c518" />
+                <CountdownBadge label={getTranslation(locale, "dashboard.kickoff")} value={daysToKickoff} accent="#f5c518" />
               )}
-              <CountdownBadge label="Final" value={daysToFinal} accent="#c084fc" />
+              <CountdownBadge label={getTranslation(locale, "dashboard.final")} value={daysToFinal} accent="#c084fc" />
             </div>
           </div>
         </div>
@@ -126,10 +125,10 @@ export default async function DashboardPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-sm sm:text-base text-[#e8eaf0] group-hover:text-[#f5c518] transition-colors mb-1">
-                  Group Stage
+                  {getTranslation(locale, "dashboard.actionGroupStageTitle")}
                 </h3>
                 <p className="text-xs sm:text-sm text-[#8899bb]">
-                  12 groups · 48 teams · Predict every match
+                  {getTranslation(locale, "dashboard.actionGroupStageDesc")}
                 </p>
               </div>
               <ChevronRight className="w-4 h-4 text-[#4a5570] group-hover:text-[#f5c518] group-hover:translate-x-1 transition-all shrink-0 mt-0.5" />
@@ -147,10 +146,10 @@ export default async function DashboardPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-sm sm:text-base text-[#e8eaf0] group-hover:text-[#34d399] transition-colors mb-1">
-                  Tournament Bracket
+                  {getTranslation(locale, "dashboard.actionBracketTitle")}
                 </h3>
                 <p className="text-xs sm:text-sm text-[#8899bb]">
-                  R32 → Final · AI auto-fill bracket
+                  {getTranslation(locale, "dashboard.actionBracketDesc")}
                 </p>
               </div>
               <ChevronRight className="w-4 h-4 text-[#4a5570] group-hover:text-[#34d399] group-hover:translate-x-1 transition-all shrink-0 mt-0.5" />
@@ -169,10 +168,10 @@ export default async function DashboardPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-[#e8eaf0]">
-                  AI-powered predictions
+                  {getTranslation(locale, "dashboard.aiBannerTitle")}
                 </p>
                 <p className="text-xs text-[#8899bb] mt-0.5 leading-relaxed">
-                  Instant match analysis — scoreline, winner, confidence &amp; reasoning
+                  {getTranslation(locale, "dashboard.aiBannerDesc")}
                 </p>
               </div>
             </div>
@@ -181,14 +180,14 @@ export default async function DashboardPage() {
               className="shrink-0 flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-2 rounded-xl bg-[#f5c518] text-[#080b14] text-xs font-bold hover:bg-[#fcd34d] transition-colors cursor-pointer w-full sm:w-auto"
             >
               <Zap className="w-3 h-3" />
-              Try now
+              {getTranslation(locale, "dashboard.aiBannerBtn")}
             </Link>
           </div>
         </div>
 
         {/* Upcoming fixtures */}
         <div className="p-3.5 sm:p-5 rounded-2xl bg-[#0e1220] border border-[#1e2640]">
-          <DashboardClient />
+          <DashboardClient locale={locale} />
         </div>
       </div>
     </div>
@@ -207,7 +206,7 @@ function CountdownBadge({ label, value, accent }: { label: string; value: number
   );
 }
 
-function LiveBadge() {
+function LiveBadge({ locale }: { locale: string }) {
   return (
     <div
       className="flex flex-col items-center justify-center px-5 py-4 rounded-2xl border"
@@ -215,10 +214,10 @@ function LiveBadge() {
     >
       <span className="flex items-center gap-1.5 text-xl font-black text-[#f5c518]">
         <span className="w-2 h-2 rounded-full bg-[#f5c518] animate-pulse" />
-        Live
+        {locale === "es" ? "En vivo" : "Live"}
       </span>
       <span className="text-[10px] font-semibold text-[#8899bb] mt-0.5 uppercase tracking-wider">
-        World Cup
+        {locale === "es" ? "Mundial" : "World Cup"}
       </span>
     </div>
   );
