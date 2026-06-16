@@ -22,125 +22,111 @@ interface RawFixture {
 
 // ── Real WC2026 Group Stage Schedule (UTC dates + times) ─────────────────
 //
-// Source: FIFA official calendar / Google Sports
-// Each entry: [group, homeIdx, awayIdx, "YYYY-MM-DD" (UTC), utcHour]
+// Source: official FIFA World Cup 2026 fixture list (via ESPN). Kickoff times
+// are given in ET (UTC-4 in June) and converted to UTC here. Late ET kickoffs
+// (9 PM ET and later) roll over to the next UTC calendar day.
+// Each entry: [group, homeIdx, awayIdx, "YYYY-MM-DD" (UTC kickoff date), utcHour, utcMinute?]
 // homeIdx/awayIdx index into WC2026_GROUPS[group].
 //
 // When the live API key is present this table is bypassed entirely
 // (only used as a fallback when the API returns empty or is unavailable).
 
-type ScheduleEntry = [string, number, number, string, number];
+type ScheduleEntry = [string, number, number, string, number, number?];
 
 const WC2026_SCHEDULE: ScheduleEntry[] = [
-  // ── Matchday 1 ──────────────────────────────────────────────────────────
-  // Jun 11
-  ["A", 0, 1, "2026-06-11", 19],  // Mexico vs South Africa (3 PM BOT = 19:00 UTC)
-  ["A", 2, 3, "2026-06-11", 23],  // Korea Republic vs Czech Republic (7 PM BOT = 23:00 UTC)
-  // Jun 12
-  ["B", 0, 1, "2026-06-12", 19],  // Canada vs Bosnia & Herz. (3 PM BOT = 19:00 UTC)
-  ["D", 0, 1, "2026-06-13", 1],   // USA vs Paraguay (9 PM BOT Jun 12 = 01:00 UTC Jun 13)
-  // Jun 13
-  ["B", 2, 3, "2026-06-13", 19],  // Qatar vs Switzerland (3 PM BOT = 19:00 UTC)
-  ["C", 0, 1, "2026-06-13", 22],  // Brazil vs Morocco (6 PM BOT = 22:00 UTC)
-  ["C", 2, 3, "2026-06-14", 1],   // Haiti vs Scotland (9 PM BOT Jun 13 = 01:00 UTC Jun 14)
-  // Jun 14
-  ["D", 2, 3, "2026-06-14", 4],   // Australia vs Turkey (12 AM BOT Jun 14 = 04:00 UTC Jun 14)
-  ["E", 0, 1, "2026-06-14", 17],  // Germany vs Curaçao (1 PM BOT = 17:00 UTC)
-  ["F", 0, 1, "2026-06-14", 20],  // Netherlands vs Japan (4 PM BOT = 20:00 UTC)
-  ["E", 2, 3, "2026-06-14", 23],  // Ivory Coast vs Ecuador (7 PM BOT = 23:00 UTC)
-  // Jun 15
-  ["F", 2, 3, "2026-06-15", 17],  // Sweden vs Tunisia (1 PM BOT = 17:00 UTC)
-  ["G", 0, 1, "2026-06-15", 20],  // Belgium vs Egypt (4 PM BOT = 20:00 UTC)
-  ["G", 2, 3, "2026-06-15", 23],  // Iran vs New Zealand (7 PM BOT = 23:00 UTC)
-  // Jun 16
-  ["H", 0, 1, "2026-06-16", 17],  // Spain vs Cape Verde (1 PM BOT = 17:00 UTC)
-  ["H", 2, 3, "2026-06-16", 20],  // Saudi Arabia vs Uruguay (4 PM BOT = 20:00 UTC)
-  ["I", 0, 1, "2026-06-16", 23],  // France vs Senegal (7 PM BOT = 23:00 UTC)
-  // Jun 17
-  ["I", 2, 3, "2026-06-17", 17],  // Iraq vs Norway (1 PM BOT = 17:00 UTC)
-  ["J", 0, 1, "2026-06-17", 20],  // Argentina vs Algeria (4 PM BOT = 20:00 UTC)
-  ["J", 2, 3, "2026-06-17", 23],  // Austria vs Jordan (7 PM BOT = 23:00 UTC)
-  // Jun 18
-  ["K", 0, 1, "2026-06-18", 17],  // Portugal vs DR Congo (1 PM BOT = 17:00 UTC)
-  ["K", 2, 3, "2026-06-18", 20],  // Uzbekistan vs Colombia (4 PM BOT = 20:00 UTC)
-  ["L", 0, 1, "2026-06-18", 23],  // England vs Croatia (7 PM BOT = 23:00 UTC)
-  // Jun 19
-  ["L", 2, 3, "2026-06-19", 17],  // Ghana vs Panama (1 PM BOT = 17:00 UTC)
+  // ══ Matchday 1 ══════════════════════════════════════════════════════════
+  // Thu Jun 11
+  ["A", 0, 1, "2026-06-11", 18],  // Mexico vs South Africa (2 PM ET)
+  ["A", 2, 3, "2026-06-11", 18],  // Korea Republic vs Czech Republic (2 PM ET)
+  // Fri Jun 12
+  ["B", 0, 1, "2026-06-12", 19],  // Canada vs Bosnia & Herz. (3 PM ET)
+  ["D", 0, 1, "2026-06-12", 23],  // USA vs Paraguay (7 PM ET)
+  // Sat Jun 13
+  ["B", 2, 3, "2026-06-13", 19],  // Qatar vs Switzerland (3 PM ET)
+  ["C", 0, 1, "2026-06-13", 23],  // Brazil vs Morocco (7 PM ET)
+  ["C", 2, 3, "2026-06-13", 23],  // Haiti vs Scotland (7 PM ET)
+  ["D", 2, 3, "2026-06-14", 4],   // Australia vs Turkey (12 AM ET → Jun 14 UTC)
+  // Sun Jun 14
+  ["E", 0, 1, "2026-06-14", 17],  // Germany vs Curaçao (1 PM ET)
+  ["F", 0, 1, "2026-06-14", 19],  // Netherlands vs Japan (3 PM ET)
+  ["E", 2, 3, "2026-06-14", 19],  // Ivory Coast vs Ecuador (3 PM ET)
+  ["F", 2, 3, "2026-06-15", 2],   // Sweden vs Tunisia (10 PM ET → Jun 15 UTC)
+  // Mon Jun 15
+  ["H", 0, 1, "2026-06-15", 22],  // Spain vs Cape Verde (6 PM ET)
+  ["G", 0, 1, "2026-06-15", 22],  // Belgium vs Egypt (6 PM ET)
+  ["H", 2, 3, "2026-06-15", 22],  // Saudi Arabia vs Uruguay (6 PM ET)
+  ["G", 2, 3, "2026-06-16", 4],   // Iran vs New Zealand (12 AM ET → Jun 16 UTC)
+  // Tue Jun 16
+  ["I", 0, 1, "2026-06-16", 19],  // France vs Senegal (3 PM ET)
+  ["I", 2, 3, "2026-06-16", 22],  // Iraq vs Norway (6 PM ET)
+  ["J", 0, 1, "2026-06-17", 1],   // Argentina vs Algeria (9 PM ET → Jun 17 UTC)
+  ["J", 2, 3, "2026-06-17", 4],   // Austria vs Jordan (12 AM ET → Jun 17 UTC)
+  // Wed Jun 17
+  ["K", 0, 1, "2026-06-17", 17],  // Portugal vs DR Congo (1 PM ET)
+  ["L", 0, 1, "2026-06-17", 20],  // England vs Croatia (4 PM ET)
+  ["L", 2, 3, "2026-06-17", 23],  // Ghana vs Panama (7 PM ET)
+  ["K", 2, 3, "2026-06-18", 2],   // Uzbekistan vs Colombia (10 PM ET → Jun 18 UTC)
 
-  // ── Matchday 2 ──────────────────────────────────────────────────────────
-  // Jun 20
-  ["A", 0, 2, "2026-06-20", 19],  // Mexico vs Korea Republic (3 PM BOT = 19:00 UTC)
-  ["A", 1, 3, "2026-06-20", 23],  // South Africa vs Czech Republic (7 PM BOT = 23:00 UTC)
-  // Jun 21
-  ["B", 0, 2, "2026-06-21", 19],  // Canada vs Qatar (3 PM BOT = 19:00 UTC)
-  ["B", 1, 3, "2026-06-21", 23],  // Bosnia & Herz. vs Switzerland (7 PM BOT = 23:00 UTC)
-  // Jun 22
-  ["C", 0, 2, "2026-06-22", 19],  // Brazil vs Haiti (3 PM BOT = 19:00 UTC)
-  ["C", 1, 3, "2026-06-22", 23],  // Morocco vs Scotland (7 PM BOT = 23:00 UTC)
-  // Jun 23
-  ["D", 0, 2, "2026-06-23", 19],  // USA vs Australia (3 PM BOT = 19:00 UTC)
-  ["D", 1, 3, "2026-06-23", 23],  // Paraguay vs Turkey (7 PM BOT = 23:00 UTC)
-  // Jun 24
-  ["E", 0, 2, "2026-06-24", 19],  // Germany vs Ivory Coast (3 PM BOT = 19:00 UTC)
-  ["E", 1, 3, "2026-06-24", 23],  // Curaçao vs Ecuador (7 PM BOT = 23:00 UTC)
-  // Jun 25
-  ["F", 0, 2, "2026-06-25", 19],  // Netherlands vs Sweden (3 PM BOT = 19:00 UTC)
-  ["F", 1, 3, "2026-06-25", 23],  // Japan vs Tunisia (7 PM BOT = 23:00 UTC)
-  // Jun 26
-  ["G", 0, 2, "2026-06-26", 19],  // Belgium vs Iran (3 PM BOT = 19:00 UTC)
-  ["G", 1, 3, "2026-06-26", 23],  // Egypt vs New Zealand (7 PM BOT = 23:00 UTC)
-  // Jun 27
-  ["H", 0, 2, "2026-06-27", 19],  // Spain vs Saudi Arabia (3 PM BOT = 19:00 UTC)
-  ["H", 1, 3, "2026-06-27", 23],  // Cape Verde vs Uruguay (7 PM BOT = 23:00 UTC)
-  // Jun 28
-  ["I", 0, 2, "2026-06-28", 19],  // France vs Iraq (3 PM BOT = 19:00 UTC)
-  ["I", 1, 3, "2026-06-28", 23],  // Senegal vs Norway (7 PM BOT = 23:00 UTC)
-  // Jun 29
-  ["J", 0, 2, "2026-06-29", 19],  // Argentina vs Austria (3 PM BOT = 19:00 UTC)
-  ["J", 1, 3, "2026-06-29", 23],  // Algeria vs Jordan (7 PM BOT = 23:00 UTC)
-  // Jun 30
-  ["K", 0, 2, "2026-06-30", 19],  // Portugal vs Uzbekistan (3 PM BOT = 19:00 UTC)
-  ["K", 1, 3, "2026-06-30", 23],  // DR Congo vs Colombia (7 PM BOT = 23:00 UTC)
-  // Jul 01
-  ["L", 0, 2, "2026-07-01", 19],  // England vs Ghana (3 PM BOT = 19:00 UTC)
-  ["L", 1, 3, "2026-07-01", 23],  // Croatia vs Panama (7 PM BOT = 23:00 UTC)
+  // ══ Matchday 2 ══════════════════════════════════════════════════════════
+  // Thu Jun 18
+  ["A", 3, 1, "2026-06-18", 16],  // Czech Republic vs South Africa (12 PM ET)
+  ["B", 3, 1, "2026-06-18", 19],  // Switzerland vs Bosnia & Herz. (3 PM ET)
+  ["B", 0, 2, "2026-06-18", 22],  // Canada vs Qatar (6 PM ET)
+  ["A", 0, 2, "2026-06-19", 3],   // Mexico vs Korea Republic (11 PM ET → Jun 19 UTC)
+  // Fri Jun 19
+  ["D", 0, 2, "2026-06-19", 19],  // USA vs Australia (3 PM ET)
+  ["C", 3, 1, "2026-06-19", 22],  // Scotland vs Morocco (6 PM ET)
+  ["C", 0, 2, "2026-06-20", 1],   // Brazil vs Haiti (9 PM ET → Jun 20 UTC)
+  ["D", 3, 1, "2026-06-20", 4],   // Turkey vs Paraguay (12 AM ET → Jun 20 UTC)
+  // Sat Jun 20
+  ["F", 0, 2, "2026-06-20", 17],  // Netherlands vs Sweden (1 PM ET)
+  ["E", 0, 2, "2026-06-20", 20],  // Germany vs Ivory Coast (4 PM ET)
+  ["E", 3, 1, "2026-06-21", 0],   // Ecuador vs Curaçao (8 PM ET → Jun 21 UTC)
+  ["F", 3, 1, "2026-06-21", 4],   // Tunisia vs Japan (12 AM ET → Jun 21 UTC)
+  // Sun Jun 21
+  ["H", 0, 2, "2026-06-21", 16],  // Spain vs Saudi Arabia (12 PM ET)
+  ["G", 0, 2, "2026-06-21", 19],  // Belgium vs Iran (3 PM ET)
+  ["H", 3, 1, "2026-06-21", 22],  // Uruguay vs Cape Verde (6 PM ET)
+  ["G", 3, 1, "2026-06-22", 1],   // New Zealand vs Egypt (9 PM ET → Jun 22 UTC)
+  // Mon Jun 22
+  ["J", 0, 2, "2026-06-22", 17],  // Argentina vs Austria (1 PM ET)
+  ["I", 0, 2, "2026-06-22", 21],  // France vs Iraq (5 PM ET)
+  ["I", 3, 1, "2026-06-23", 0],   // Norway vs Senegal (8 PM ET → Jun 23 UTC)
+  ["J", 3, 1, "2026-06-23", 3],   // Jordan vs Algeria (11 PM ET → Jun 23 UTC)
+  // Tue Jun 23
+  ["K", 0, 2, "2026-06-23", 17],  // Portugal vs Uzbekistan (1 PM ET)
+  ["L", 0, 2, "2026-06-23", 20],  // England vs Ghana (4 PM ET)
+  ["L", 3, 1, "2026-06-23", 23],  // Panama vs Croatia (7 PM ET)
+  ["K", 3, 1, "2026-06-24", 2],   // Colombia vs DR Congo (10 PM ET → Jun 24 UTC)
 
-  // ── Matchday 3 (Simultaneous kickoff per group) ──────────────────────────
-  // Jul 02
-  ["A", 0, 3, "2026-07-02", 19], ["A", 1, 2, "2026-07-02", 19],
-  // Jul 03
-  ["B", 0, 3, "2026-07-03", 19], ["B", 1, 2, "2026-07-03", 19],
-  // Jul 04
-  ["C", 0, 3, "2026-07-04", 19], ["C", 1, 2, "2026-07-04", 19],
-  // Jul 05
-  ["D", 0, 3, "2026-07-05", 19], ["D", 1, 2, "2026-07-05", 19],
-  // Jul 06
-  ["E", 0, 3, "2026-07-06", 19], ["E", 1, 2, "2026-07-06", 19],
-  // Jul 07
-  ["F", 0, 3, "2026-07-07", 19], ["F", 1, 2, "2026-07-07", 19],
-  // Jul 08
-  ["G", 0, 3, "2026-07-08", 19], ["G", 1, 2, "2026-07-08", 19],
-  // Jul 09
-  ["H", 0, 3, "2026-07-09", 19], ["H", 1, 2, "2026-07-09", 19],
-  // Jul 10
-  ["I", 0, 3, "2026-07-10", 19], ["I", 1, 2, "2026-07-10", 19],
-  // Jul 11
-  ["J", 0, 3, "2026-07-11", 19], ["J", 1, 2, "2026-07-11", 19],
-  // Jul 12
-  ["K", 0, 3, "2026-07-12", 19], ["K", 1, 2, "2026-07-12", 19],
-  // Jul 13
-  ["L", 0, 3, "2026-07-13", 19], ["L", 1, 2, "2026-07-13", 19],
+  // ══ Matchday 3 (simultaneous kickoffs per group) ════════════════════════
+  // Wed Jun 24
+  ["B", 3, 0, "2026-06-24", 19], ["B", 1, 2, "2026-06-24", 19],  // Group B (3 PM ET)
+  ["C", 3, 0, "2026-06-24", 22], ["C", 1, 2, "2026-06-24", 22],  // Group C (6 PM ET)
+  ["A", 3, 0, "2026-06-25", 1],  ["A", 1, 2, "2026-06-25", 1],   // Group A (9 PM ET → Jun 25 UTC)
+  // Thu Jun 25
+  ["E", 3, 0, "2026-06-25", 20], ["E", 1, 2, "2026-06-25", 20],  // Group E (4 PM ET)
+  ["F", 1, 2, "2026-06-25", 23], ["F", 3, 0, "2026-06-25", 23],  // Group F (7 PM ET)
+  ["D", 3, 0, "2026-06-26", 2],  ["D", 1, 2, "2026-06-26", 2],   // Group D (10 PM ET → Jun 26 UTC)
+  // Fri Jun 26
+  ["I", 3, 0, "2026-06-26", 19], ["I", 1, 2, "2026-06-26", 19],  // Group I (3 PM ET)
+  ["H", 1, 2, "2026-06-27", 0],  ["H", 3, 0, "2026-06-27", 0],   // Group H (8 PM ET → Jun 27 UTC)
+  ["G", 1, 2, "2026-06-27", 3],  ["G", 3, 0, "2026-06-27", 3],   // Group G (11 PM ET → Jun 27 UTC)
+  // Sat Jun 27
+  ["L", 3, 0, "2026-06-27", 21], ["L", 1, 2, "2026-06-27", 21],  // Group L (5 PM ET)
+  ["K", 3, 0, "2026-06-27", 23, 30], ["K", 1, 2, "2026-06-27", 23, 30],  // Group K (7:30 PM ET)
+  ["J", 1, 2, "2026-06-28", 2],  ["J", 3, 0, "2026-06-28", 2],   // Group J (10 PM ET → Jun 28 UTC)
 ];
 
 
 // ── Static fixture generator ──────────────────────────────────────────────
 
 function buildStaticFixtures(): RawFixture[] {
-  return WC2026_SCHEDULE.map(([group, hi, ai, dateStr, hour], idx) => {
+  return WC2026_SCHEDULE.map(([group, hi, ai, dateStr, hour, min = 0], idx) => {
     const teams = WC2026_GROUPS[group];
     const home  = teams[hi];
     const away  = teams[ai];
-    const dt    = new Date(`${dateStr}T${String(hour).padStart(2, "0")}:00:00Z`);
+    const dt    = new Date(`${dateStr}T${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}:00Z`);
 
     const now = Date.now();
     const startTime = dt.getTime();

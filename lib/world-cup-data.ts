@@ -95,6 +95,69 @@ export function getFlagUrl(code: string, size: number = 40): string {
   return `https://flagcdn.com/w${size}/${code.toLowerCase()}.png`;
 }
 
+/**
+ * Parses a group match id (e.g. "H-0-1") into its group letter and the two
+ * teams it references inside WC2026_GROUPS. The canonical id always has the
+ * lower team index first, matching how group standings are computed.
+ */
+export function parseGroupMatchId(
+  matchId: string
+): { group: string; home: Team; away: Team } | null {
+  const m = matchId.match(/^([A-L])-(\d+)-(\d+)$/);
+  if (!m) return null;
+  const [, group, iStr, jStr] = m;
+  const teams = WC2026_GROUPS[group];
+  if (!teams) return null;
+  const home = teams[parseInt(iStr, 10)];
+  const away = teams[parseInt(jStr, 10)];
+  if (!home || !away) return null;
+  return { group, home, away };
+}
+
+/**
+ * Maps a group match id (e.g. "H-0-1") to a stable, collision-free numeric id
+ * for the Supabase `predictions.match_id` column. Encodes the group letter so
+ * matches that share team indices across different groups never collide:
+ *   number = groupIndex(0-11) * 100 + min(i,j) * 10 + max(i,j)
+ * e.g. "H-0-1" → 7*100 + 0*10 + 1 = 701. Range 0–1133 across all 72 matches.
+ *
+ * Must stay in sync with `supabase/migrations/002_fix_match_id_collision.sql`.
+ * Non group-stage ids fall back to the legacy derivation.
+ */
+export function groupMatchIdToNumber(matchId: string): number {
+  const m = matchId.match(/^([A-L])-(\d)-(\d)$/);
+  if (!m) {
+    return (
+      parseInt(matchId.replace(/\D/g, "").padEnd(8, "0").slice(0, 8), 10) || 0
+    );
+  }
+  const [, letter, iStr, jStr] = m;
+  const g = letter.charCodeAt(0) - 65; // A=0 … L=11
+  const i = parseInt(iStr, 10);
+  const j = parseInt(jStr, 10);
+  return g * 100 + Math.min(i, j) * 10 + Math.max(i, j);
+}
+
+/**
+ * Resolves the canonical group match id (e.g. "H-0-1") for a pair of team
+ * names, regardless of the order they appear in a fixture. Returns null when
+ * the two teams are not in the same group.
+ */
+export function fixtureToGroupMatchId(
+  homeName: string,
+  awayName: string
+): string | null {
+  for (const [group, teams] of Object.entries(WC2026_GROUPS)) {
+    const hi = teams.findIndex((t) => t.name === homeName);
+    const ai = teams.findIndex((t) => t.name === awayName);
+    if (hi !== -1 && ai !== -1) {
+      const [i, j] = hi < ai ? [hi, ai] : [ai, hi];
+      return `${group}-${i}-${j}`;
+    }
+  }
+  return null;
+}
+
 export function getCountryFlagCode(teamName: string): string {
   const map: Record<string, string> = {
     Mexico: "mx", "South Africa": "za", "Korea Republic": "kr", "Czech Republic": "cz",

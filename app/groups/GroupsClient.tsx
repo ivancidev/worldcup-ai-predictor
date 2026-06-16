@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { WC2026_GROUPS, getFlagUrl } from "@/lib/world-cup-data";
+import { WC2026_GROUPS, getFlagUrl, groupMatchIdToNumber } from "@/lib/world-cup-data";
 import { usePredictionStore } from "@/lib/store";
 import { AIPrediction, Prediction, Team, Fixture } from "@/lib/types";
 import { Dialog } from "@/components/ui/Dialog";
@@ -223,7 +223,7 @@ export default function GroupsClient({ userId, savedPredictions, initialGroup }:
   ) => {
     setSavingMatch(matchId);
     const supabase = createClient();
-    const matchIdNum = parseInt(matchId.replace(/\D/g, "").padEnd(8, "0").slice(0, 8));
+    const matchIdNum = groupMatchIdToNumber(matchId);
     const winner = homeScore > awayScore ? homeTeam.name : homeScore < awayScore ? awayTeam.name : "Draw";
 
     const { data: pred, error } = await supabase.from("predictions").upsert({
