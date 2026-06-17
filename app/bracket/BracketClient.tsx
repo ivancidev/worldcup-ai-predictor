@@ -832,7 +832,10 @@ export default function BracketClient() {
 
             <div className="p-4 rounded-xl bg-[#141928] border border-[#1e2640]/50 max-h-56 overflow-y-auto">
               <h4 className="text-xs font-bold text-[#e8eaf0] mb-2 uppercase tracking-wider">{t("bracket.aiReasoning")}</h4>
-              <p className="text-xs text-[#8899bb] leading-relaxed whitespace-pre-wrap">{aiModal.reasoning}</p>
+              <p className="text-xs text-[#8899bb] leading-relaxed whitespace-pre-wrap mb-3">{aiModal.reasoning}</p>
+              <div className="pt-2 border-t border-[#1e2640]/50 text-[10px] text-[#4a5570] italic">
+                ⚠️ {t("predict.aiDisclaimer")}
+              </div>
             </div>
 
             <Button variant="gold" className="w-full text-xs font-bold py-2.5" onClick={() => setAiModal(null)}>
