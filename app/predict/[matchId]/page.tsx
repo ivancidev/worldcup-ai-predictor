@@ -360,9 +360,12 @@ function MatchPredict({
                 {aiPred.confidence}% {getConfidenceLabel(aiPred.confidence, locale)}
               </Badge>
             </div>
-            <p className="text-[#8899bb] text-sm leading-relaxed whitespace-pre-wrap">
+            <p className="text-[#8899bb] text-sm leading-relaxed whitespace-pre-wrap mb-4">
               {aiPred.reasoning}
             </p>
+            <div className="pt-3 border-t border-[#1e2640] text-[11px] text-[#4a5570] italic">
+              ⚠️ {t("predict.aiDisclaimer")}
+            </div>
           </div>
         )}
 
